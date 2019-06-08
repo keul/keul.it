@@ -109,19 +109,21 @@ Ok... at that time I don't remember if I was still a Java developer or already m
 PHP was (is still probably) cheap... nobody will give you easily ssh access to a server to do some Python.
 
 So why I bought it?
-My had was "One day I will create my personal site, then... who knows? Maybe I will develop my personal blog engine?".
+The same Old Error, the "One day I will" syndrome:
 
-Jesus... what an incredible amount of free time...
+> "One day I will create my personal site, then... who knows? Maybe I will develop my personal blog engine?".
 
-Having a personal web site at the time was still cool... maybe not that much like in the mid-90nties, but not uncommon as it's today.
+Jesus... what an incredible amount of free time.
+
+Having a personal web site at the time was cool? Don't know, maybe not that much like in the mid-90nties, but not uncommon as it's today.
 Keep in mind I'm not a freelance, I'm pretty sure that this can be important for a guy who need to sell itself as a company.
 
 But for me this has been a waste of money.
-I never used the PHP support apart some basic stuff, I don't even have anymore any FTP access to it (the service deleted it automatically after security issues that hit other users)... and I don't want it anymore.
+I never used the PHP support apart some basic stuff, I don't have anymore any FTP access configured (the service deleted my last ones years ago automatically after security issues that hit other users)... and I don't want it anymore.
 
 But every year, in the renewal period, I ended saying "Ok, maybe next year".
 
-Lazyness.
+Laziness and procrastination.
 
 # SSL
 
@@ -161,7 +163,7 @@ So... let say that the domain (and mail service included) is a necessary evil fo
 
 # I want it all
 
-Today keul.it hosts an empty, embarrassing website I didn't updated for ages, and a DNS configuration for publishing the blogger's blog under "blog.keul.it".
+Today keul.it hosts an empty, embarrassing website I didn't updated for ages, and a DNS configuration for publishing the blogger's blog under "blog.keul.it" (well, until now).
 
 Yes.
 I'm paying 200€/years for a domain alias.
@@ -173,21 +175,24 @@ Let's recap stuff in my _I want_ list:
 * I want to keep my old articles, keeping back-links active
 * I want to stop burning money and dismiss at least the hosting service
 
-Now my _I like_ list:
+Now my _wish_ list:
 
-* I like the idea to keep control on my blogging architecture. I fear any service, I want to change "easily".
+* I like the idea to keep control on my blogging architecture.
+  I fear any service, I want to change "easily".
 * I like the idea to continue using my old blog.keul.it domain (although I don't like to pay that much, but world is not a perfect place)
 
 # Here we are
 
 If you are reading this, my dream comes true.
-I'm hosting this new blog using my custom domain just using very basic Netlify features and simply `npm install` ing Gatsby with the blog add-on.
+I'm hosting this new blog using my domain and some very basic Netlify features, simply `npm install` ing Gatsby with the blog add-on.
 
 My old blog is still alive, I just re-enabled the native address under [lucafbb.blogspot.com](https://lucafbb.blogspot.com/) but, thanks to Netlify redirects support, I have proper HTTP 301 redirects.
 
-Do you see this layout?
-I'm sure I will never change the default theme and layout (maybe the default Gatsby favicon?), but it's OK.
-And th random image below?
+Do you like this layout?
+No? I don't care too much.
+
+Is possible that I will never change the default theme (maybe the default Gatsby favicon?), but it's OK.
+And the random image below?
 It came from the default quick-start tutorial.
 
 ![Chinese Salty Egg](./salty_egg.jpg)
