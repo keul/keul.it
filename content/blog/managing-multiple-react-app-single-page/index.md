@@ -26,19 +26,25 @@ Things gets more complicated when we have both.
 
 ## Webpack and duplicated code
 
-During the alpha phase of the project, when we only need to present a working spike of the Editor app, we did not deal with the **duplicate code issue** but obviously this is something we had to fix.
+During the alpha phase of our project, when we only need to present a working spike of the Editor app, we did not deal with the **duplicate code issue**.
+
+This is one of the many problems that tools like Webpack removed from our daily work: in a common CRA or webpack environment all of your dependencies are wrapped in your bundle so (ideally) you can live with multiple copies of libraries on the same page.
 
 It's a classical problem you need to address when using two different React app on a single page: if you handle them independently you are duplicating code: `react`, `react-dom` and probably other stuff will be **bundled twice**.
 That's what we commonly call **vendors dependencies**.
 
+That's not means this is OK.
+Going back to the project: we had to fix this before reaching the public beta stage.
+
 One simple solution could be to inject React and ReactDOM as external `<script>` on the page.
 
-![React as external script from CDN](./external-react-src.png)
+[![React as external script from CDN](./external-react-src.png)](https://twitter.com/dan_abramov/status/1012119124481277952)
 
-This works, but I never like that much the idea to rely on external CND service.
+This works.
+But I never liked that much the idea to rely on external CND service.
 I don't care if they are 99.99997% uptime, because in the end it's my uptime that really count.
 
-Plus: the "maybe it's already cached because I use CDN" is not something I would bet in.
+Plus: the "maybe it's already cached because I use CDN" is not something I would bet on.
 
 See also [Self-Host Your Static Assets](https://csswizardry.com/2019/05/self-host-your-static-assets/).
 
