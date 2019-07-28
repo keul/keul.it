@@ -14,3 +14,7 @@
 /2014/02/plone-html-5-canvas-and-face-detection.html			https://lucafbb.blogspot.com/2014/02/plone-html-5-canvas-and-face-detection.html
 /2014/04/general-type-new-criterion-for-plone.html				https://lucafbb.blogspot.com/2014/04/general-type-new-criterion-for-plone.html
 /2014/05/plone-javascript-configuration-and-i18n.html			https://lucafbb.blogspot.com/2014/05/plone-javascript-configuration-and-i18n.html
+
+# Redirect domain aliases to primary domain
+https://www.keul.it/* https://blog.keul.it/:splat 301!
+https://keul.it/* https://blog.keul.it/:splat 301!
