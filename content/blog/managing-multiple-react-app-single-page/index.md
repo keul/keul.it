@@ -28,7 +28,7 @@ Things gets more complicated when we have both.
 
 During the alpha phase of our project, when we only need to present a working spike of the Editor app, we did not deal with the **duplicate code issue**.
 
-This is one of the many problems that tools like Webpack removed from our daily work: in a common CRA or webpack environment all of your dependencies are wrapped in your bundle so (ideally) you can live with multiple copies of libraries on the same page.
+This is one of the many problems that tools like Webpack removed from our daily work: in a common CRA/webpack environment all of your dependencies are wrapped in your bundle so (ideally) you can live with multiple copies of libraries on the same page.
 
 It's a classical problem you need to address when using two different React app on a single page: if you handle them independently you are duplicating code: `react`, `react-dom` and probably other stuff will be **bundled twice**.
 That's what we commonly call **vendors dependencies**.
@@ -42,11 +42,10 @@ One simple solution could be to inject React and ReactDOM as external `<script>`
 
 This works.
 But I never liked that much the idea to rely on external CND service.
-I don't care if they are 99.99997% uptime, because in the end it's my uptime that really count.
+I don't care if they are 99.99997% uptime, because in the end it's _yours_ uptime that really count.
 
-Plus: the "maybe it's already cached because I use CDN" is not something I would bet on.
-
-See also [Self-Host Your Static Assets](https://csswizardry.com/2019/05/self-host-your-static-assets/).
+Plus: the "maybe it's already cached because I use CDN" is not something I would bet on: there's a lot of different version of every libraries out there, on many different CDN.
+All of my concerns are summed up in this article: [Self-Host Your Static Assets](https://csswizardry.com/2019/05/self-host-your-static-assets/).
 
 Another important point: the Editor is hosted inside an external CMS page (Drupal based, not under our control) and we _really_ needed to keep things simple with it: asking to add/change markup on that page was not something easy.
 
@@ -87,7 +86,7 @@ require('expose-loader?myproject.components.Loadable!components/Loadable');
 
 What is this `myproject`?
 It's a global object we use to expose feature to the outside env (whatever it is).
-We need this by design as the Widgets App need to expose some functions and a logger stream.
+We need this by design as the Widgets App need to expose some functions and a logger stream to the host JavaScript environment.
 This webpack plugin can easily expose stuff inside objects too.
 
 ### On the Editor
@@ -123,7 +122,7 @@ On the Editor things are more mainstream: we just need to tell webpack to not bu
 
 ### Drawbacks
 
-There's some drawbacks in this approach:
+There are some drawbacks in this approach:
 
 * We are polluting the global namespace
 * The dependency from one app to the other is "too strong".
@@ -135,8 +134,9 @@ This application is not running in a micro-frontend environment, putting stuff i
 
 The latter drawback is more critical: we can't have different React (for example) versions for the two applications.
 
-At some time I planned a migration of React and styled-components, and I was forced to do it on both the codebase.
-It has been easy because of React, which it always a back compatibility hero, but it's not ideal.
+If you think this is not a big issue, think again.
+At some point we planned a migration of React and styled-components, and I was forced to do it **on both the codebases**.
+It has not been so hard because of React, which it always a back compatibility hero, but it's not ideal.
 
 ### A better solution
 
