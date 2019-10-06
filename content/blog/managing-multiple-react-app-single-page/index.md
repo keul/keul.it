@@ -1,7 +1,7 @@
 ---
 title: Managing multiple independent ReactJS apps on a single page
 date: "2019-06-15T17:10:35+0200"
-description: Having multiple ReactJS applications bundled by Webpack on a single page is not so straightforward. In this article I'd like to inspect some issues I faced, how I solved them and how I should have fixed them instead.
+description: Having multiple ReactJS applications bundled by Webpack on a single page is not so straightforward. In this article I'd like to inspect some issues I faced, how I solved them (and how I should have fixed them instead)
 ---
 
 A complex React application I worked on, a set of widgets presented together, is composed by a single React app (let's call it **Widgets App**).
@@ -11,9 +11,9 @@ Meanwhile the project evolved and we started working on a new side-application, 
 
 To be more clear:
 
-* Widgets App can be used independently from the IDE and should work on its own on dedicated page(s)
+* Widgets App can be used independently from the IDE and should work on its own on dedicated page
 * Editor needs Widgets App "inside"
-* Editor and Widgets App need to communicate
+* Editor and Widgets App needs to communicate
 
 Let say that I'm not using `create-react-app`.
 When this project started CRA was at version 1.x and I didn't liked it that much, I had to eject very early.
@@ -26,7 +26,7 @@ Things gets more complicated when we have both React apps on the same page.
 
 # Webpack and duplicated code
 
-During the alpha phase of our project, when we only need to present a working spike of the Editor app, we did not deal with the **duplicate code issue**.
+During the alpha phase of our project, when out needs was to present a working spike of the Editor app, we did not deal with the **duplicate code issue**.
 
 This is one of the many problems that tools like Webpack removed from our daily work: in a common CRA or webpack environment all of your dependencies are wrapped in your bundle so (ideally) you can live with multiple copies of libraries on the same page.
 
@@ -42,13 +42,13 @@ One simple solution could be to inject React and ReactDOM as external `<script>`
 
 This just works.
 But I never liked that much the idea to rely on external CND service.
-I don't care if they are 99.99997% uptime, because in the end it's my uptime that really count.
+I don't care if they are 99.99997% uptime, because in the end it's _my_ uptime that really count.
 
 Plus: the "_maybe it's already cached because I use CDN_" is not something I would bet on.
 
 An article that sum up all of my concerns about self hosting: "[Self-Host Your Static Assets](https://csswizardry.com/2019/05/self-host-your-static-assets/)".
 
-Another important point: the Editor is hosted inside an external CMS page (Drupal based, not under our control) and we _really_ needed to keep things simple with it: asking to add/change markup on that page was not something easy, na with a quite long release-cycle change.
+Another important point: the Editor is hosted inside an external CMS page (Drupal based, not under our control) and we _really_ needed to keep things simple with it: asking to add/change markup on that page is not something easy, and with a pretty long release-cycle change.
 
 So: I want to distribute _my_ vendor stuff.
 
@@ -140,13 +140,11 @@ It has been easy because of React, which it always a back compatibility hero, bu
 
 ## A better solution
 
-There's a great solution that fix all of the issues above (plus other I did not mentioned, like the fact that I can use `async` attribute with this) and that we will probably embrace in the future: [async-define](https://engineering.tes.com/post/async-define/).
-
-We are planning to to move in that direction in the future.
+There's a great solution that fix all of the issues above (plus other I did not mentioned, like the fact that I can use `async` attribute on `script` tags) and that we will probably embrace in the future: [async-define](https://engineering.tes.com/post/async-define/).
 
 # Important Webpack configurations to know about
 
-OK, so we have bot applications on the same page up and running.
+OK, so we have both applications on the same page up and running.
 For while.
 
 ## Clashing chunks
@@ -155,12 +153,11 @@ As the Editor is a pretty big project I started very early to load chunks asynch
 
 At some point the Widgets App started introducing some pretty heavy widgets.
 
-The best example I can remember is a [plotly.js](https://plot.ly/javascript/) based component.
+The best example I can name is a [plotly.js](https://plot.ly/javascript/) based React component.
 Plotly is a [huge library](https://bundlephobia.com/result?p=plotly.js); you don't need to load by default all of it's plugins (Plotly is well designed and splitted in many module you can load on request) but the core is still _a lot_ of KBytes.
 
 So we introduced code splitting and async loading also for the Widgets App.
-
-And we found new errors:
+And we had new errors:
 
 ```
 Uncaught (in promise) TypeError: Cannot read property 'call' of undefined
@@ -175,10 +172,107 @@ modules[moduleId].call(module.exports, module, module.exports, hotCreateRequire(
 
 What I learned is that `modules` is a _global_ array of loadable modules but both **bundles were writing in the same array**.
 
-Lesson learned: webpack by default is not isolating your bundle so well.
+Lesson learned: **by default, Webpack is not isolating your bundle so well** and is not OOTB configured to host multiple webpack based build on the same page.
 Seems that every webpack bundle in the world write chunks inside a `webpackJsonp` global object.
 
 Let me say this is well explained in the configuration (when you know what to search): you need to use the [output.jsonpFunction](https://webpack.js.org/configuration/output/#outputjsonpfunction).
 
-After changing this value to something new chunks name collision issue disappeared.
+After changing this value to something new chunks name collision issue disappeared:
 
+```javascript
+  output: {
+    jsonpFunction: 'webpackJsonp_widgetsapp',
+    ...
+  },
+```
+
+## Type of hashing used for chunks
+
+Webpack gives you the control over how to name your generated modules and chunks.
+
+The configuration (by using the `chunkFilename` prop) can be something like this:
+
+```javascript
+  output: {
+    jsonpFunction: 'webpackJsonp_widgets',
+    chunkFilename: 'widgetsapp-[name]-[hash].chunk.js';
+    ...
+  },
+```
+
+What is the `hash` placeholder above?
+Is one of the ways Webpack provides you to control the generation of unique names in your bundle, but is not the only one.
+
+From the official documentation:
+
+* **hash**: the hash of the module identifier
+* **chunkhash**: the hash of the chunk content
+* **contenthash**: the hash of the content of a file, which is different for each asset
+
+Why generating unique values is important?
+Because you can push front-end performance forward by providing **strong caching policy**.
+
+The `hash` value is a simple solution, the only problem is it change for *every file* whatever small change I did.
+Not that good.
+
+The Application described here is quite huge and and we have a frequent release schedule.
+At every new release, also for a minor change like fixing a typo in a `console.log` we got all of our bundle files invalidated.
+
+Whit `chunkhash` things are better, but not that much: sometimes chunks of section *B* where invalidated while I only modified a simple stuff inside section *A*.
+
+Why?
+`chunkhash` is as hash based on the *whole file*, but a chunk file contains also some wrapper code added by webpack itself.
+Adding new webpack split point, for example, can lead to a change of this wrapped code in _every_ chunk, so you can still see all of your chunks invalidated for very simple changes like a typo.
+
+Another alternative is then `contenthash`, where the hash is based on the _content_.
+You can find some articles that sponsor `contenthash` in favor of `chunkhash`, but read them carefully: this kind of hashing was originally designed for the ExtractTextPlugin plugin.
+
+In facts: using this hash type lead me to a bug that hit old versions of the application.
+
+The application source code is distributed from a single CDN service where every *major.minor* versions share the same filesystem directory.
+This should not be a problem because we use unique file hashing, isn't it?
+
+After a while, when a new chunk/split-point was added to the application, I found that the same hashed file name was generated for a slightly different content which, as I said above, is exactly how `contenthash` works.
+
+For example: the old version of the file was something like:
+
+```
+(window.webpackJsonp_widgetsapp=window.webpackJsonp_widgetsapp||[]).push([[6],{"2d0274e27fde9220edd9"...
+```
+
+...while the new version was:
+
+```
+(window.webpackJsonp_widgetsapp=window.webpackJsonp_widgetsapp||[]).push([[7],{"2d0274e27fde9220edd9"...
+```
+
+As you can see the difference is only an index value: before was 6 and now 7.
+But as far as these two files share the same filename and directory, uploading them in the same CDN remote directory means that the new one overrode the old.
+
+This was obviously a huge problem for old versions of the application running on different stacks: an old version of the application is expecting to have the chunk loaded at index 6, but instead it was not here.
+
+One solution could be to go back to `chunkhash`: maybe it's not ideal for super-effective caching, but at this point it's safer than this.
+
+However Webpack gives you another chance.
+
+As you seen above, Webpack is storing chunks in an array based on numerical index, while all this would not happen if chunk name/id would be used instead.
+
+And this is possible thanks to the [chunkIds option](https://webpack.js.org/configuration/optimization/#optimizationchunkids).
+
+Setting this value to `named` instead of the default (`natural`, which is the id based on usage order) is doing the magic:
+
+```
+(window.webpackJsonp_widgetsapp=window.webpackJsonp_widgetsapp||[]).push([["mywidget"],{"03b81338c3085d9847f6"
+```
+
+As you can see now we have a stable id, we don't care anymore about the usage order.
+
+## General purpose chunks loading
+
+At the beginning of this article I said that our applications are mainly running inside an hosting environment not under our control (Drupal based).
+
+Running stuff generated by Webpack inside 3rd party product is not complex, but 90% of resource you find online starts from an `index.html` static file.
+
+When you have to put your application inside another service, the generated `index.html` in your build is useless
+
+xxx
