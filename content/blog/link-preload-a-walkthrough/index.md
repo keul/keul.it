@@ -71,11 +71,11 @@ This was the general workflow of the application, but let me highlight more:
   Almost all resources in the list, apart the main page which is cached for a short time, never change.
   _Please note_: effects of this caching layer is not visible in this example.
 
-One final note: you probably already noted that API call if performed with an HTTP GET method (with parameters as query string arguments).
-The application can (and most of the times will) use a more common HTTP POST.
+One final note: you probably already noted that the API call is performed with an HTTP GET method (with parameters as query string arguments).
+The application can (and most of the times will) use a more common HTTP POST too.
 
-When applicable (not doable for every kind on application) using GET make the request call easier to be cached in the reverse proxy.
-Caching a POST is doable, but not so easy to be inspected.
+When applicable (not applicable to every kind on remote process) we use GET.
+GET make the request call easier to be cached in the reverse proxy; caching a POST is doable but, in my limited experience, not so easy to be controlled/inspected.
 
 # The journey to the performance land
 
@@ -90,12 +90,177 @@ We have three main entities:
 
 The former version of the application was downloading and parsing bundle _then_ fetching the `configuration.json` _then_ calling the API.
 
-But our server (a Python based API) is already aware of the JSON file itself
+But our server (a Python based API) is already aware of the JSON file itself (because _it_ generate the configuration).
+So ideally we can start the configuration call earlier.
 
-Now let's detail every attempt.
+And this not ends here: as the configuration contains every information for performing the initial API call we still don't need the JavaScript application to be up and running to perform it.
+
+So: ideally we make those three calls _concurrent_.
+
+Now let's detail every attempt to reach this by using the powerful preload pattern.
+
+### What a preload pattern should do?
+
+Briefly speaking: the browser try to fetch the resource at higher priority (to be honest, priority depends on the `as` attribute) so when your application try fetch the resource the browser would say "Hey! I already have this stuff".
+
+Also notable: browser cache is still applied: if the preloaded resource is in the browser cache, no new load attempt is made at all.
+
+> **Note**: `link` with `rel="preload"` is [currently only supported by Chrome and Safari](https://caniuse.com/#feat=link-rel-preload) but, as you can guess, this covers 80% of the browsers out there.
 
 ## Enabling preload
 
-I was already aware of some of the issues I encountered, but I was still hoping that all could work by simply doing following change.
+I was already aware of some of the issues I encountered, but I hoped that all could work by simply doing few changes.
+_Spoiler alert_: most of tutorial you can find on the Web just say "_add a preload and live happy_".
+Liars.
 
-My first step was to add
+My first attempt: added what's follow to our template file on the server (syntax should be straightforward although this is a Jinja template):
+
+```html
+<link rel="preload" as="fetch" href="{{ configuration_url }}" />
+<link rel="preload" as="fetch" href="{{ run_url }}" />
+```
+
+Not much to say: just tried to put URIs to `configuration.json` (`configuration_url`) and API with query string (`run_url`) in a `preload` elements.
+
+This didn't worked.
+Even worst: resources are **loaded twice**:
+
+![Resources loaded twice](./loaded-twice-1.png)
+
+Hey!
+Preloading _is working_... so why the browser don't reuse the same information?
+
+The solution can be found in the console:
+
+> ````
+> A preload for '.../configuration.json' is found, but is not used because the request headers do not match.```
+> ````
+
+Plus another similar message for the API call.
+
+Just Googling for this and you will find a general answer:
+to be reused, a preload request **must have identical headers** to the default request.
+
+Easy... or not?
+
+For now let's focus on the configuration request only, for brevity.
+
+> **Note**: from now on: stuff inside the `<...>` placeholder is omitted but is never an issue, so equals on both preload and canonical requests.
+
+These are the headers of the preload requests:
+
+```
+:authority: <...>
+:method: GET
+:path: <...>/configuration.json
+:scheme: https
+accept: */*
+accept-encoding: gzip, deflate, br
+accept-language: <...>
+cache-control: no-cache
+cookie: <...>
+pragma: no-cache
+referer: <...>
+sec-fetch-dest: empty
+sec-fetch-mode: no-cors
+sec-fetch-site: same-origin
+user-agent: <...>
+```
+
+...and these headers sent with the JavaScript fetch:
+
+```
+:authority: <...>
+:method: GET
+:path: <...>/configuration.json
+:scheme: https
+accept: */*
+accept-encoding: gzip, deflate, br
+accept-language: <...>
+cache-control: no-cache
+content-type: application/json
+cookie: <...>
+pragma: no-cache
+referer: <...>
+sec-fetch-dest: empty
+sec-fetch-mode: cors
+sec-fetch-site: same-origin
+user-agent: <...>
+```
+
+Let focus on differences:
+
+| preload                   | fetch                            |
+| ------------------------- | -------------------------------- |
+| _nothing_                 | `content-type: application/json` |
+| `sec-fetch-mode: no-cors` | `sec-fetch-mode: cors`           |
+
+As you can see the difference is only for the `content-type` and `sec-fetch-mode` headers. The former is not there in the preload call, while the latter change from `no-cors` to `cors`.
+
+A similar result if obtained for the failed API call (let me only show the resume table):
+
+| preload                   | fetch                            |
+| ------------------------- | -------------------------------- |
+| _nothing_                 | `content-type: application/json` |
+| `sec-fetch-mode: no-cors` | `sec-fetch-mode: cors`           |
+| `accept: */*`             | `accept: application/json`       |
+
+### Issue: `Accept` header
+
+Let start from this last new entry: the [`Accept` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept).
+
+It seems that **every preload request is providing an `accept: */*` header value**.
+Live with that.
+
+This is an easy fix on my side as the `Accept: application/json` was an explicit header added in my code.
+
+Follow a pseudo-code of my fetch service:
+
+```javascript{2-3}
+fetch(URL, "GET", {
+  "Content-Type": "application/json",
+  Accept: "application/json",
+})
+```
+
+The `Accept` header there is not wrong at all, it was added because in ancient ages responses from the backend were not only JSON but also YAML was possible.
+
+This is not true anymore and I has been able to remove the header with no issues.
+
+```javascript{2}
+fetch(URL, "GET", {
+  "Content-Type": "application/json",
+})
+```
+
+### Issue: `Content-Type` header
+
+There's a way to specify a content-type in a `link` request?
+
+It seems not: it's true you can add a `type` attribute, so what's follow is perfectly valid:
+
+```html
+<link
+  rel="preload"
+  as="fetch"
+  href="{{ configuration_url }}"
+  type="application/json"
+/>
+<link rel="preload" as="fetch" href="{{ run_url }}" type="application/json" />
+```
+
+But this is not changing the content-type in any way.
+
+OK, let's try to simply make headers equals, so we can again change the fetch:
+
+```javascript
+fetch(URL, "GET")
+```
+
+So we are not sending any special headers now.
+
+### Issue: `sec-fetch-mode` header
+
+Finally something we can't fix from JavaScript.
+
+The [`sec-fetch-mode`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Sec-Fetch-Mode) header (as any other header starting with `sec-*`) is a [forbidden header name](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) so we can't manipulate it from JavaScript, for security reasons.
