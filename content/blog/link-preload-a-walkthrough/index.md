@@ -1,11 +1,19 @@
 ---
-title: A walkthrough on prioritizing resource load using link preload
+title: A walkthrough on prioritizing resources load using link preload
 date: "2020-03-07T15:08:00+0200"
 description: Using a "preload" link can be the Holy Grail for boosting performance on some applications, but enabling it is not so straightforward.
 ---
 
+```toc
+# This code block gets replaced with the TOC
+exclude: Table of Contents
+```
+
+# What has been achieved
+
 Last week I worked on an front-end performance optimization task for a project.
-The front-end of this application (my domain) is a React application, but this is not important.
+The front-end of this application (my domain) is a React application but this post has nothing to do with React.<br>
+Information here can be applied to any JavaScript application.
 
 What I addressed is moving from a situation like this...
 
@@ -15,19 +23,19 @@ What I addressed is moving from a situation like this...
 
 ![Page situation after optimization](./post-preload-link-nocache-1.png)
 
-Before focusing on the top overview timeline where it seems it goes from 4.5 sec to 2.5 sec, let me say this is not strictly true:
-this is a development server, response time change a lot, browser cache is disabled (because we need to inspect new users).
+Before focusing on the top overview timeline where it seems it goes from 4.5 sec to 2.5 sec, let me say this is not strictly true: this is a development server, response time change a lot, browser cache is disabled (because we are particularly interested on new users).
 
-_But_, in any case, every test I did never gone under 1 second gain, which is _a lot_.
+_But_, in any case, every test I did never gone under **1 second gain**, which is _a lot_.
 
-Did I refactored my JavaScript code from scratch? Did I found a huge infinite loop? Did I changed my machine or network to a 10x more powerful one?<br>
+Did I refactored my JavaScript code from scratch? Did I removed an hidden task for calculating π? Did I changed my machine or network to a 10x more powerful one?<br>
 No!
 
-I "simply" performed a couple of [resource preload](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content) using `link rel="preload"`.
+I "simply" implemented a couple of [resource preload](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content) using `link rel="preload"`.
 
-What this meant for my application? Two very important calls are not serialized anymore but **performed in parallel with no side effects**.
+What this meant for my application?
+Two very important calls are not serialized anymore but **performed in parallel with no side effects**.
 
-I'm writing this post because _this has not been exactly easy_ and I didn't find a single tutorial that contained all of the issues I faced.
+I'm writing this post because _this has not been exactly easy_ and I not found a single tutorial that contained all of the issues I encountered.
 
 Now, please sorry, but to fully understand further you need some context on the application.
 
@@ -106,6 +114,8 @@ Briefly speaking: the browser try to fetch the resource at higher priority (to b
 Also notable: browser cache is still applied: if the preloaded resource is in the browser cache, no new load attempt is made at all.
 
 > **Note**: `link` with `rel="preload"` is [currently only supported by Chrome and Safari](https://caniuse.com/#feat=link-rel-preload) but, as you can guess, this covers 80% of the browsers out there.
+>
+> This is enough for supporting it has it's fully backward compatible.
 
 ## Enabling preload
 
@@ -212,14 +222,16 @@ Let start from this last new entry: the [`Accept` header](https://developer.mozi
 It seems that **every preload request is providing an `accept: */*` header value**.
 Live with that.
 
-This is an easy fix on my side as the `Accept: application/json` was an explicit header added in my code.
+This is an easy fix on my side as the `application/json` value was explicitly addeded in the code.
 
-Follow a pseudo-code of my fetch service:
+Follow a pseudo-code of my fetch service (the real fetch service is a more complex service but I'm trying to be simple):
 
-```javascript{2-3}
-fetch(URL, "GET", {
+```javascript{3-4}
+fetch(URL, method, {
+  credentials: "include",
   "Content-Type": "application/json",
   Accept: "application/json",
+  // other call specific headers and params
 })
 ```
 
@@ -227,17 +239,117 @@ The `Accept` header there is not wrong at all, it was added because in ancient a
 
 This is not true anymore and I has been able to remove the header with no issues.
 
-```javascript{2}
-fetch(URL, "GET", {
+```javascript{3}
+fetch(URL, method, {
+  credentials: "include",
   "Content-Type": "application/json",
+  // other call specific headers and params
 })
 ```
+
+**Note** you probably noticed that I'm performing a cross-origin requests with cookie (`credentials: "include"`). This is by design:
+
+- some application instance is embeddable on 3rd party pages
+- few of the application instance are public. Other only runs previous authentication
+
+This will be important later.
 
 ### Issue: `Content-Type` header
 
 There's a way to specify a content-type in a `link` request?
 
 It seems not: it's true you can add a `type` attribute, so what's follow is perfectly valid:
+
+```html{5,7}
+<link
+  rel="preload"
+  as="fetch"
+  href="{{ configuration_url }}"
+  type="application/json"
+/>
+<link rel="preload" as="fetch" href="{{ run_url }}" type="application/json" />
+```
+
+But this is not changing the content-type in any way (still I like being explicit and I didn't removed them).
+
+OK, let's try to simply make headers equals, so we can again change the fetch:
+
+```javascript
+fetch(URL, method, {
+  credentials: "include",
+  // other call specific headers and params
+})
+```
+
+So we are not sending any special headers now.
+
+### Issue: `sec-fetch-mode` header
+
+Finally something we can't fix from JavaScript.
+
+The [`sec-fetch-mode`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Sec-Fetch-Mode) header (as any other header starting with `sec-*`) is a [forbidden header name](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) so we can't manipulate it from JavaScript, for security reasons.
+
+The browser is _automatically_ setting it to `cors` because of the `credentials` fetch setting.
+
+How can we fix this?
+
+## `preload` with `crossorigin`
+
+Cross-origin calls are everywhere and luckily the preload specs support them: you can make a preload request cross-origin by providing the [`crossorigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content#Cross-origin_fetches).
+
+The [`crossorigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin) is common for loading remote fonts.
+
+My options here are the default `anonymous` value or `use-credentials`.
+
+Let say I put `use-credentials` (I also tried with `anonymous` if you want to konw) so we have:
+
+```html{6,13}
+<link
+  rel="preload"
+  as="fetch"
+  href="{{ configuration_url }}"
+  type="application/json"
+  crossorigin="use-credentials"
+/>
+<link
+  rel="preload"
+  as="fetch"
+  href="{{ run_url }}"
+  type="application/json"
+  crossorigin="use-credentials"
+/>
+```
+
+Did this fix my headers issue?
+
+![YES!](./yes.jpg)
+
+We fixed the `sec-fetch-mode` so playing with the `crossorigin` was OK.<br>
+Generally speaking: we need to make both crossorigin settings (using `crossorigin` in preload and `credentials` in fetch) compatible to each other.
+
+Also, a new `Origin` header has been added automatically, but this header if the equals so this didn't introduced new issues.
+
+### The `Origin` header
+
+Even if the [`Origin` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin) don't start with `sec-` **it's still a forbidden header** name.
+This is obvious, a lot of security is based on this header and we can't make it editable from JavaScript.
+
+Lesson learned: every time we have a cross-origin request, the browser [automatically set the `Origin` head](https://javascript.info/fetch-crossorigin#cors-for-simple-requests).
+
+## Moving away from cross-origin requests
+
+I could stop here, but I was not fully happy (that's the sad story of my life).
+
+My original attempt was to make both `sec-fetch-mode` values equals to `cors`, but there's something I can reflect upon.
+
+As I said earlier the application is, by design, developed to perform cross-origin request, but in every case where I care about preloading I am in a _same-origin_ case.<br>
+Even better: I'm particularly interested on boosting performance of _public_ application, where there's not authentication at all.
+
+Generally speaking: I like the idea to have the most restrictive and secure configuration.
+
+You probably guessed what I mean: **can we get rid of cross-origin?**
+
+To address this let's go back to the old version of my `preload` links:
 
 ```html
 <link
@@ -249,18 +361,143 @@ It seems not: it's true you can add a `type` attribute, so what's follow is perf
 <link rel="preload" as="fetch" href="{{ run_url }}" type="application/json" />
 ```
 
-But this is not changing the content-type in any way.
+Now I need to do the other way around in my fetch too by disabling CORS completely:
 
-OK, let's try to simply make headers equals, so we can again change the fetch:
-
-```javascript
-fetch(URL, "GET")
+```javascript{2}
+fetch(URL, method, {
+  mode: "no-cors",
+  // other call specific headers and params
+})
 ```
 
-So we are not sending any special headers now.
+(note this is still a pseudo-code... I still need CORS in every not-same-domain environment)
 
-### Issue: `sec-fetch-mode` header
+So this simple change worked? It was so easy?
 
-Finally something we can't fix from JavaScript.
+![YES!](./yes.jpg)
 
-The [`sec-fetch-mode`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Sec-Fetch-Mode) header (as any other header starting with `sec-*`) is a [forbidden header name](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) so we can't manipulate it from JavaScript, for security reasons.
+These are the "final" complete headers list:
+
+```
+:authority: <...>
+:method: GET
+:path: <...>/configuration.json
+:scheme: https
+accept: */*
+accept-encoding: gzip, deflate, br
+accept-language: <...>
+cache-control: no-cache
+cookie: <...>
+pragma: no-cache
+referer: <...>
+sec-fetch-dest: empty
+sec-fetch-mode: no-cors
+sec-fetch-site: same-origin
+user-agent: <...>
+```
+
+...but.
+
+I was congratulating myself for being a smart guy and for this heroic spelunking into the preload world when a coworker pinged me on Slack saying:
+
+> "Hey, an application I was working on is not working anymore"
+
+After some time spent debugging server side issues (because hey, if you get an error 500 the problem is from the backend-developer, right?) we found that the server was not receiving parameters anymore for every application that was using POST instead of GET.
+GET was OK.
+
+I was able to reproduce easily in my test application too by changing the submit method to POST (GET or POST is another `configuration.json` settings).
+
+Follows headers sent with the request that get an HTTP 500 error:
+
+```python{10}
+:authority: <...>
+:method: POST
+:path: <...>/compute_climatology
+:scheme: https
+accept: */*
+accept-encoding: gzip, deflate, br
+accept-language: <...>
+cache-control: no-cache
+content-length: 64
+content-type: text/plain;charset=UTF-8
+cookie: <...>
+origin: <...>
+pragma: no-cache
+referer: <...>
+sec-fetch-dest: empty
+sec-fetch-mode: no-cors
+sec-fetch-site: same-origin
+user-agent: <...>
+```
+
+If you look at the header list above you can see there's a `Content-Type` as `text/plain;charset=UTF-8`.
+
+Let me say I'm not setting this header anywhere in my code.
+
+And our API server is right: I'm POSTing a JSON encoded form and it need to know this ("making it work" on the server is never a way to go).<br>
+Removing the `Content-Type` for all type of requests was a mistake but _providing_ it for a simple GET request is an error too (because how can a GET request be in JSON format)?
+
+You can think that a fix can be to restore my `Content-Type` header, so something like this:
+
+```javascript{3}
+fetch(URL, method, {
+  mode: "no-cors",
+  ...(method !== 'POST" && { Content-Type": "application/json" }),
+  // other call specific headers and params
+})
+```
+
+This seems OK but changed nothing: the browser is overriding any value to `text/plain;charset=UTF-8`.
+
+What's going on?
+
+Thanks to some StackOverflow answer I found an explanation in the [`Request.mode` page](https://developer.mozilla.org/en-US/docs/Web/API/Request/mode#Value).<br>
+In case value is `no-cors` it says:
+
+> Prevents the method from being anything other than HEAD, GET or POST, and the headers from being anything other than [simple headers](https://fetch.spec.whatwg.org/#simple-header)
+
+Roughly speaking: if I use `no-cors` I have this `Content-Type` automatically set.
+
+But the solution in my case is quite easy because I need `no-cors` only for same-site GET requests!
+
+So let's now present the "final" version of the pseudo-code:
+
+```javascript{3}
+fetch(URL, method, {
+  credentials: 'same-site',
+  ...(method === 'GET' && { mode: 'no-cors' }),
+  ...(method !== 'POST" && { Content-Type": "application/json" }),
+  // other call specific headers and params
+})
+```
+
+Now applications are working properly with GET and POST requests, and when using GET preload is up and running.
+
+# Push performance, more and more
+
+Let's conclude this post with some final notes about possible future improvements and other patterns.
+
+## Embedding `configuration.json` in the HTML
+
+Somewhere at the top I said that our Python server knows the content of the configuration file.
+
+So why not embedding it in the HTML instead of:
+
+- writing an URL to the HTML
+- making the JavaScript download it
+
+Good question.
+
+Let me say we use HTTP2.
+Now, HTTP2 is not a silver bullet, but the cost of downloading an additional resource is very low.
+
+OK, "very low" is not 0, but having a separate resource presents another big advantage: **it can be cached**, in this case, forever.<br>
+In this case this strong caching is not only for what we call Public Apps, but for every kind of applications, so also and authenticated user has some advantage.
+
+## HTTP2 push
+
+Another approach is HTTP2 push, which is powerful and can be directly used from NGINX by providing a [`LINK` header from the upstream server](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push/#automatic-push).
+
+But the cache issue remains: pushing a resource from the server every time means no caching, or we need a way to know if the client has the resource in the cache...
+
+Move along, move along.

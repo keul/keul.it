@@ -6,6 +6,12 @@ Wordpress2016.overrideThemeStyles = () => {
     ul: {
       paddingLeft: "1rem",
     },
+    'a > code[class*="language-"]': {
+      color: "white",
+    },
+    'a:not(pre) > code[class*="language-"]': {
+      backgroundColor: "#007acc",
+    },
     "a.gatsby-resp-image-link": {
       boxShadow: `none`,
     },
