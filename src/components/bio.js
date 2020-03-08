@@ -38,11 +38,23 @@ function Bio() {
               }}
             />
             <p>
-              I'm <strong>{author}</strong>, I'm a (<em>Web?</em>) (<em>Full-stack?</em>) Front-end developer.
-              {' '}
-              I'm working for <a target="_blank" rel="noopener noreferrer" href="http://www.bopen.it/">B-Open Solutions</a>.
+              I'm <strong>{author}</strong>, I'm a (Web?) ( Full-stack?)
+              (Front-end?) developer currently working at{" "}
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="http://www.bopen.it/"
+              >
+                B-Open
+              </a>
+              .
               <br />
-              <a target="_blank" rel="noopener noreferrer" href={`https://twitter.com/${social.twitter}`}>
+              <br />
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href={`https://twitter.com/${social.twitter}`}
+              >
                 Follow me on Twitter
               </a>
             </p>
