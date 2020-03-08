@@ -27,24 +27,26 @@ Before focusing on the top overview timeline where it seems it goes from 4.5 sec
 
 _But_, in any case, every test I did never gone under **1 second gain**, which is _a lot_.
 
-Did I refactored my JavaScript code from scratch? Did I removed an hidden task for calculating π? Did I changed my machine or network to a 10x more powerful one?<br>
+Did I refactored my JavaScript code from scratch?
+Did I removed the hidden crypto-miner I hide in every project I deploy?
+Did I changed my machine or network to a 10x more powerful one?<br>
 No!
 
 I "simply" implemented a couple of [resource preload](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content) using `link rel="preload"`.
 
 What this meant for my application?
-Two very important calls are not serialized anymore but **performed in parallel with no side effects**.
+Two very important calls are not serialized anymore but **performed in parallel with no side effects** with other assets on the page.
 
-I'm writing this post because _this has not been exactly easy_ and I not found a single tutorial that contained all of the issues I encountered.
+I'm writing this post because this has not been exactly "easy" and I not found a single tutorial that contained all of the issues I encountered.
 
-Now, please sorry, but to fully understand further you need some context on the application.
+Now, please sorry, but to fully understand you need some small context on the application.
 
 # Few information about the service
 
 Let me introduce some general information on the application itself.
 
-- The JavaScript application on its own can't do nothing interesting
-- The application need to download a **configuration.json** file
+- The JavaScript application on its own can't do nothing interesting (as a front-end developer this make me feel useless sometimes, but I learn to live with this)
+- The application needs to download a `configuration.json` file
 
   ![Network request for configuration.json](./configuration-detail.png)
 
@@ -68,24 +70,24 @@ Let me introduce some general information on the application itself.
 This was the general workflow of the application, but let me highlight more:
 
 - Until the main JavaScript code has not been loaded we display a spinner (I know, I know... no SSR yet).
-- Until the `configuration.json` has not been loaded we can't say anything about what to show on the screen, so we just display a loading indicator.
+- Until the `configuration.json` has not been loaded we can't say anything about what to show on the screen, so we just display a loading indicator.<br>
+  What I mean: React is up and running, but it has not bloody idea on what to do.
 - When both the main JavaScript source and the configuration file are loaded we can both:
 
   - start the execution (by calling the API)
   - load additional chunks (if needed).
+  - start to display watermark for results we are expecting
 
 - All these resources are cached in the browser (but as I said we were working for improving the first-visit journey) and in a **caching HTTP reverse proxy**.
 
-  Almost all resources in the list, apart the main page which is cached for a short time, never change.
+- Almost all resources in the list, apart the main page which is cached for a short time, never change.
   _Please note_: effects of this caching layer is not visible in this example.
 
 One final note: you probably already noted that the API call is performed with an HTTP GET method (with parameters as query string arguments).
-The application can (and most of the times will) use a more common HTTP POST too.
+The application can (and most of the times will) use a more common HTTP POST but when applicable (not for every kind of remote process) we use GET.<br>
+GET make the cache process easier in the reverse proxy; caching a POST is doable (at least in NGINX) but, in my limited experience, not so easy to be controlled/inspected.
 
-When applicable (not applicable to every kind on remote process) we use GET.
-GET make the request call easier to be cached in the reverse proxy; caching a POST is doable but, in my limited experience, not so easy to be controlled/inspected.
-
-# The journey to the performance land
+# The journey in the performance land
 
 ## What we can do better?
 
@@ -103,24 +105,23 @@ So ideally we can start the configuration call earlier.
 
 And this not ends here: as the configuration contains every information for performing the initial API call we still don't need the JavaScript application to be up and running to perform it.
 
-So: ideally we make those three calls _concurrent_.
+We can make those three calls _concurrent_.
 
 Now let's detail every attempt to reach this by using the powerful preload pattern.
 
 ### What a preload pattern should do?
 
-Briefly speaking: the browser try to fetch the resource at higher priority (to be honest, priority depends on the `as` attribute) so when your application try fetch the resource the browser would say "Hey! I already have this stuff".
+Briefly speaking: the browser try to fetch the resource at higher priority (more accurate: priority depends on the `as` attribute) so when your application try to fetch the resource the browser would say "_Hey! I already have this stuff!_".
 
-Also notable: browser cache is still applied: if the preloaded resource is in the browser cache, no new load attempt is made at all.
+Also notable: browser cache is still applied: if the preloaded resource is in the browser cache, cache is used for both preload _and_ fetch.
 
-> **Note**: `link` with `rel="preload"` is [currently only supported by Chrome and Safari](https://caniuse.com/#feat=link-rel-preload) but, as you can guess, this covers 80% of the browsers out there.
->
-> This is enough for supporting it has it's fully backward compatible.
+> **Note**: `link` with `rel="preload"` is [currently only supported by Chrome and Safari](https://caniuse.com/#feat=link-rel-preload) but, as you can guess, this covers 80% of the browsers out there.<br>
+> This is enough for supporting it has **it's fully backward compatible**.
 
 ## Enabling preload
 
 I was already aware of some of the issues I encountered, but I hoped that all could work by simply doing few changes.
-_Spoiler alert_: most of tutorial you can find on the Web just say "_add a preload and live happy_".
+_Spoiler alert_: most of tutorial you can find on the Web just say "_add a preload and live happy_".<br>
 Liars.
 
 My first attempt: added what's follow to our template file on the server (syntax should be straightforward although this is a Jinja template):
@@ -138,20 +139,21 @@ Even worst: resources are **loaded twice**:
 ![Resources loaded twice](./loaded-twice-1.png)
 
 Hey!
-Preloading _is working_... so why the browser don't reuse the same information?
+Preloading operation _is running_... so why the browser don't reuse the same information?
 
 The solution can be found in the console:
 
-> ````
-> A preload for '.../configuration.json' is found, but is not used because the request headers do not match.```
-> ````
+```
+A preload for '.../configuration.json' is found, but is not used because the request headers do not match.
+```
 
 Plus another similar message for the API call.
 
-Just Googling for this and you will find a general answer:
-to be reused, a preload request **must have identical headers** to the default request.
+Just Googling for this and you will find a general answer: to be reused, a preload request **must have identical headers** to the default request.<br>
+So this is our task now: let's make headers identical.
 
-Easy... or not?
+Easy.
+Or not?
 
 For now let's focus on the configuration request only, for brevity.
 
@@ -226,7 +228,7 @@ This is an easy fix on my side as the `application/json` value was explicitly ad
 
 Follow a pseudo-code of my fetch service (the real fetch service is a more complex service but I'm trying to be simple):
 
-```javascript{3-4}
+```javascript{4}
 fetch(URL, method, {
   credentials: "include",
   "Content-Type": "application/json",
@@ -235,11 +237,11 @@ fetch(URL, method, {
 })
 ```
 
-The `Accept` header there is not wrong at all, it was added because in ancient ages responses from the backend were not only JSON but also YAML was possible.
+The `Accept` header there is not wrong at all, it was added because in ancient ages responses from the backend were not only JSON but also a YAML format was allowed.
 
-This is not true anymore and I has been able to remove the header with no issues.
+This is not true anymore and I was able to remove the header with no issues.
 
-```javascript{3}
+```javascript
 fetch(URL, method, {
   credentials: "include",
   "Content-Type": "application/json",
@@ -247,10 +249,12 @@ fetch(URL, method, {
 })
 ```
 
-**Note** you probably noticed that I'm performing a cross-origin requests with cookie (`credentials: "include"`). This is by design:
+**Note** you probably noticed that I'm performing a cross-origin requests with cookies (`credentials: "include"`).
+This is by design:
 
-- some application instance is embeddable on 3rd party pages
-- few of the application instance are public. Other only runs previous authentication
+- some instances of our applications are embeddable on 3rd party pages
+- few applications are public.
+  Other only runs previous authentication
 
 This will be important later.
 
@@ -281,7 +285,7 @@ fetch(URL, method, {
 })
 ```
 
-So we are not sending any special headers now.
+So we are not sending any special headers now (but _this is wrong_... continue reading).
 
 ### Issue: `sec-fetch-mode` header
 
@@ -295,13 +299,16 @@ How can we fix this?
 
 ## `preload` with `crossorigin`
 
-Cross-origin calls are everywhere and luckily the preload specs support them: you can make a preload request cross-origin by providing the [`crossorigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content#Cross-origin_fetches).
+Cross-origin calls are everywhere and luckily the preload specs supports them: you can make a preload request cross-origin by providing the [`crossorigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content#Cross-origin_fetches).
 
 The [`crossorigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin) is common for loading remote fonts.
 
-My options here are the default `anonymous` value or `use-credentials`.
+Available options here are:
 
-Let say I put `use-credentials` (I also tried with `anonymous` if you want to konw) so we have:
+- the default `anonymous` value
+- `use-credentials`.
+
+Let say I put `use-credentials` (I also tried with `anonymous` if you want to know) so we have:
 
 ```html{6,13}
 <link
@@ -324,10 +331,11 @@ Did this fix my headers issue?
 
 ![YES!](./yes.jpg)
 
-We fixed the `sec-fetch-mode` so playing with the `crossorigin` was OK.<br>
+We fixed the `sec-fetch-mode` so playing with the `crossorigin` was OK.
+
 Generally speaking: we need to make both crossorigin settings (using `crossorigin` in preload and `credentials` in fetch) compatible to each other.
 
-Also, a new `Origin` header has been added automatically, but this header if the equals so this didn't introduced new issues.
+Also, a new `Origin` header has been added automatically, but this header is equal on both requests so didn't introduced new issues.
 
 ### The `Origin` header
 
@@ -338,16 +346,16 @@ Lesson learned: every time we have a cross-origin request, the browser [automati
 
 ## Moving away from cross-origin requests
 
-I could stop here, but I was not fully happy (that's the sad story of my life).
+I could have stopped here, but I was not fully happy (that's the sad story of my life).
 
-My original attempt was to make both `sec-fetch-mode` values equals to `cors`, but there's something I can reflect upon.
+My original attempt was to make both `sec-fetch-mode` values equals to `cors`, but there's something to reflect upon.
 
 As I said earlier the application is, by design, developed to perform cross-origin request, but in every case where I care about preloading I am in a _same-origin_ case.<br>
 Even better: I'm particularly interested on boosting performance of _public_ application, where there's not authentication at all.
 
-Generally speaking: I like the idea to have the most restrictive and secure configuration.
+Generally speaking: I like the idea to have the most restrictive and secure configuration: if you need few permissions I want to give you only the minimal set.
 
-You probably guessed what I mean: **can we get rid of cross-origin?**
+You probably guessed what I mean: **can we get rid of cross-origin calls?**
 
 To address this let's go back to the old version of my `preload` links:
 
@@ -402,7 +410,7 @@ I was congratulating myself for being a smart guy and for this heroic spelunking
 
 > "Hey, an application I was working on is not working anymore"
 
-After some time spent debugging server side issues (because hey, if you get an error 500 the problem is from the backend-developer, right?) we found that the server was not receiving parameters anymore for every application that was using POST instead of GET.
+After some time spent debugging server side issues and pointing my finger on my colleague (because hey, if you get a 500 status the problem is from the backend-developer, right?) we found that the server was not receiving parameters anymore for every application that was using POST instead of GET.
 GET was OK.
 
 I was able to reproduce easily in my test application too by changing the submit method to POST (GET or POST is another `configuration.json` settings).
@@ -434,10 +442,12 @@ If you look at the header list above you can see there's a `Content-Type` as `te
 
 Let me say I'm not setting this header anywhere in my code.
 
-And our API server is right: I'm POSTing a JSON encoded form and it need to know this ("making it work" on the server is never a way to go).<br>
-Removing the `Content-Type` for all type of requests was a mistake but _providing_ it for a simple GET request is an error too (because how can a GET request be in JSON format)?
+And to be honest our API server is right: I'm POSTing a JSON encoded form and it needs to be informed this; "making it work" on the server by allowing a text/plain input is bad for an API.<br>
+Removing the `Content-Type` for all type of requests was a mistake but _providing_ it for a simple GET request is an error too!
+How can a GET request be in JSON format?
+So my code was not formally correct from the beginning here.
 
-You can think that a fix can be to restore my `Content-Type` header, so something like this:
+So let's fix this by restoring my `Content-Type` header, something like this:
 
 ```javascript{3}
 fetch(URL, method, {
@@ -456,13 +466,12 @@ In case value is `no-cors` it says:
 
 > Prevents the method from being anything other than HEAD, GET or POST, and the headers from being anything other than [simple headers](https://fetch.spec.whatwg.org/#simple-header)
 
-Roughly speaking: if I use `no-cors` I have this `Content-Type` automatically set.
-
+Roughly speaking: if I use `no-cors` I have this `Content-Type: text/plain` automatically set and no override is possible.<br>
 But the solution in my case is quite easy because I need `no-cors` only for same-site GET requests!
 
 So let's now present the "final" version of the pseudo-code:
 
-```javascript{3}
+```javascript{3-4}
 fetch(URL, method, {
   credentials: 'same-site',
   ...(method === 'GET' && { mode: 'no-cors' }),
@@ -471,7 +480,7 @@ fetch(URL, method, {
 })
 ```
 
-Now applications are working properly with GET and POST requests, and when using GET preload is up and running.
+Now applications are working properly with GET and POST requests and, when using GET, preload is up and running.
 
 # Push performance, more and more
 
@@ -479,25 +488,25 @@ Let's conclude this post with some final notes about possible future improvement
 
 ## Embedding `configuration.json` in the HTML
 
-Somewhere at the top I said that our Python server knows the content of the configuration file.
-
+Somewhere at the top I said that our Python server knows the content of the configuration file.<br>
 So why not embedding it in the HTML instead of:
 
 - writing an URL to the HTML
 - making the JavaScript download it
 
-Good question.
+Good point.
 
 Let me say we use HTTP2.
-Now, HTTP2 is not a silver bullet, but the cost of downloading an additional resource is very low.
+Now, HTTP2 is not a silver bullet, but the cost of downloading an additional resource is low.
 
-OK, "very low" is not 0, but having a separate resource presents another big advantage: **it can be cached**, in this case, forever.<br>
-In this case this strong caching is not only for what we call Public Apps, but for every kind of applications, so also and authenticated user has some advantage.
+OK, "low" is not "none", but having a separate resource brings another big advantage: **it can be cached**, in this case, forever.<br>
+Also this strong caching is not only for what we call "public apps", but for every kind of application, so also an authenticated user gains some benefit.
 
 ## HTTP2 push
 
 Another approach is HTTP2 push, which is powerful and can be directly used from NGINX by providing a [`LINK` header from the upstream server](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push/#automatic-push).
 
-But the cache issue remains: pushing a resource from the server every time means no caching, or we need a way to know if the client has the resource in the cache...
+But the cache issue remains: pushing a resource from the server every time means no caching or we need a way to know if the client has the resource in the cache...
+Too much complex.
 
 Move along, move along.
