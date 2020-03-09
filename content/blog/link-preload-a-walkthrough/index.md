@@ -89,7 +89,7 @@ GET make the cache process easier in the reverse proxy; caching a POST is doable
 
 # The journey in the performance land
 
-## What we can do better?
+## What can we do better?
 
 Let recap our weak points.
 We have three main entities:
@@ -507,6 +507,6 @@ Also this strong caching is not only for what we call "public apps", but for eve
 Another approach is HTTP2 push, which is powerful and can be directly used from NGINX by providing a [`LINK` header from the upstream server](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push/#automatic-push).
 
 But the cache issue remains: pushing a resource from the server every time means no caching or we need a way to know if the client has the resource in the cache...
-Too much complex.
+Way too complex.
 
 Move along, move along.
