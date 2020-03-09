@@ -55,7 +55,7 @@ Let me introduce some general information on the application itself.
   - an URL to a remote API service
   - default parameters to run this **remote process execution**.
 
-  This remote call must per performed as soon as possible.
+  This remote call must be performed as soon as possible.
 
   ![Network request for process execution](./workflow-detail.png)
 
