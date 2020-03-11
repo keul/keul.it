@@ -249,7 +249,7 @@ fetch(URL, method, {
 })
 ```
 
-**Note** you probably noticed that I'm performing a cross-origin requests with cookies (`credentials: "include"`).
+**Note**: you probably noticed that I'm performing a cross-origin requests with cookies (`credentials: "include"`).
 This is by design:
 
 - some instances of our applications are embeddable on 3rd party pages
