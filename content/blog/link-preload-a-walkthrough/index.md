@@ -442,7 +442,7 @@ If you look at the header list above you can see there's a `Content-Type` as `te
 
 Let me say I'm not setting this header anywhere in my code.
 
-And to be honest our API server is right: I'm POSTing a JSON encoded form and it needs to be informed this; "making it work" on the server by allowing a text/plain input is bad for an API.<br>
+And to be honest our API server is right: I'm POSTing a JSON encoded form and it needs to be informed about this; "making it work" on the server by allowing a text/plain input is bad for an API.<br>
 Removing the `Content-Type` for all type of requests was a mistake but _providing_ it for a simple GET request is an error too!
 How can a GET request be in JSON format?
 So my code was not formally correct from the beginning here.
