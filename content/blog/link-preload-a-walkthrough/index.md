@@ -442,17 +442,17 @@ If you look at the header list above you can see there's a `Content-Type` as `te
 
 Let me say I'm not setting this header anywhere in my code.
 
-And to be honest our API server is right: I'm POSTing a JSON encoded form and it needs to be informed about this; "making it work" on the server by allowing a text/plain input is bad for an API.<br>
+And to be honest our API server is right: I'm POSTing a JSON encoded form and it needs to be informed about this; "making it work" on the server by allowing a text/plain input is bad for any API design.<br>
 Removing the `Content-Type` for all type of requests was a mistake but _providing_ it for a simple GET request is an error too!
 How can a GET request be in JSON format?
-So my code was not formally correct from the beginning here.
+So my code was not formally correct from the beginning.
 
-So let's fix this by restoring my `Content-Type` header, something like this:
+So let's fix this by restoring my `Content-Type` header just for POST, something like this:
 
 ```javascript{3}
 fetch(URL, method, {
   mode: "no-cors",
-  ...(method !== 'POST" && { Content-Type": "application/json" }),
+  ...(method !== 'GET" && { Content-Type": "application/json" }),
   // other call specific headers and params
 })
 ```
@@ -475,7 +475,7 @@ So let's now present the "final" version of the pseudo-code:
 fetch(URL, method, {
   credentials: 'same-site',
   ...(method === 'GET' && { mode: 'no-cors' }),
-  ...(method !== 'POST" && { Content-Type": "application/json" }),
+  ...(method !== 'GET" && { Content-Type": "application/json" }),
   // other call specific headers and params
 })
 ```
