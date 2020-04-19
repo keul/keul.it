@@ -4,22 +4,24 @@ date: "2019-06-15T17:10:35+0200"
 description: Having multiple ReactJS applications bundled by Webpack on a single page is not so straightforward. In this article I'd like to inspect some issues I faced, how I solved them (and how I should have fixed them instead)
 ---
 
-A complex React application I worked on, a set of widgets presented together, is composed by a single React app (let's call it **Widgets App**).
+A complex React application I worked on, a set of widgets presented together, was composed by a single React app (let's call it **Widgets App**).
 That means: a single `ReactDOM.render` call, like 95% of React applications out there probably.
 
 Meanwhile the project evolved and we started working on a new side-application, an **Editor**, that's only make sense if used with the Widgets App.
 
 To be more clear:
 
-* Widgets App can be used independently from the IDE and should work on its own on dedicated page.
+* Widgets App can be used independently from the Editor and should work on its own on dedicated page.
   Ideally: it should be easily embeddable on 3rd party pages.
 * Editor needs Widgets App "inside"
-* Editor and Widgets App needs to communicate
+* Editor and Widgets App must communicate (Widgets App send messages to the Editor)
 
-Let say that we are not using `create-react-app`.
+![General connection schema](./apps-graph.png)
+
+Let me say that: we are not using `create-react-app`.
+
 When this project started CRA was at version 1.x and I didn't liked it that much, I felt very limited.
-Lot of people say that version 2.x (3.x?) is a lot better.
-I believe them but I don't know.
+Lot of people say that version 2.x (3.x?) is a lot better, and probably is, but my feeling is that CRA is super cool when your environment in an index.html page you can fully controls, which is not the case here.
 
 When the Widgets App is used standalone there's no special cases to handle during the bundle (we use Webpack and Rollup for a reason, isn't it?).
 
@@ -35,21 +37,20 @@ It's a classical problem you need to address when using two different React app 
 That's what we commonly call **vendors dependencies**.
 
 That's not means this is OK.
-For out project: we had to fix this before reaching the public beta stage.
+For our project we had to fix this before reaching the public beta stage.
 
 One simple solution could be to inject React and ReactDOM as external `<script>` on the page.
 
 [![React as external script from CDN](./external-react-src.png)](https://twitter.com/dan_abramov/status/1012119124481277952)
 
-This just works.
-But I never liked that much the idea to rely on external CND service.
+This "just works", but I never liked that much the idea to rely on external CND service.
 I don't care if they are 99.99997% uptime, because in the end it's _my_ uptime that really count.
 
 Plus: the "_maybe it's already cached because I use CDN_" is not something I would bet on.
 
 An article that sum up all of my concerns about self hosting: "[Self-Host Your Static Assets](https://csswizardry.com/2019/05/self-host-your-static-assets/)".
 
-Another important point: the Editor is hosted inside an external CMS page (Drupal based, not under our control) and we _really_ needed to keep things simple with it: asking to add/change markup on that page is not something easy, and with a pretty long release-cycle change.
+Another important point: the Editor is hosted inside an external CMS page (Drupal based, not under our direct control) and we _really_ needed to keep things simple with it: asking to add/change markup on that page is not something easy, and with a pretty long release-cycle change.
 
 So: I want to distribute _my_ vendor stuff.
 
@@ -83,7 +84,7 @@ I have a couple of React components that I liked to use on both Editor and Widge
 How can I share them easily?
 
 ```javascript
-require('expose-loader?myproject.components.Loadable!components/Loadable');
+require('expose-loader?myproject.components.SharedComponent!components/SharedComponent');
 ```
 
 What is this `myproject`?
@@ -153,10 +154,10 @@ For while.
 
 As the Editor is a pretty big project I started very early to load chunks asynchronously to improve perceived performance and do not load by default lesser used features.
 
-At some point the Widgets App started introducing some pretty heavy widgets.
+At some point the Widgets App started introducing some new heavy widgets.
 
 The best example I can name is a [plotly.js](https://plot.ly/javascript/) based React component.
-Plotly is a [huge library](https://bundlephobia.com/result?p=plotly.js); you don't need to load by default all of it's plugins (Plotly is well designed and splitted in many module you can load on request) but the core is still _a lot_ of KBytes.
+Plotly is a [huge library](https://bundlephobia.com/result?p=plotly.js): you don't need to load by default all of it's plugins (Plotly is well designed and splitted in many module you can load on request) but the core is still _a lot_ of KBytes.
 
 So we introduced code splitting and async loading also for the Widgets App.
 And we had new errors:
@@ -175,7 +176,7 @@ modules[moduleId].call(module.exports, module, module.exports, hotCreateRequire(
 What I learned is that `modules` is a _global_ array of loadable modules but both **bundles were writing in the same array**.
 
 Lesson learned: **by default, Webpack is not isolating your bundle so well** and is not OOTB configured to host multiple webpack based build on the same page.
-Seems that every webpack bundle in the world write chunks inside a `webpackJsonp` global object.
+Seems that, by default, every webpack bundle in the world write chunks inside a `webpackJsonp` global object.
 
 Let me say this is well explained in the configuration (when you know what to search): you need to use the [output.jsonpFunction](https://webpack.js.org/configuration/output/#outputjsonpfunction).
 
