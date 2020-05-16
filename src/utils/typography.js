@@ -6,6 +6,9 @@ Wordpress2016.overrideThemeStyles = () => {
     ul: {
       paddingLeft: "1rem",
     },
+    li: {
+      marginBottom: '0.5rem',
+    },
     'a > code[class*="language-"]': {
       color: "white",
     },
@@ -46,6 +49,9 @@ Wordpress2016.overrideThemeStyles = () => {
     '.gatsby-highlight pre[class*="language-"].line-numbers': {
       paddingLeft: "2.8em",
     },
+    'a.anchor': {
+      boxShadow: 'none',
+    }
   }
 }
 
