@@ -38,7 +38,7 @@ function Bio() {
               }}
             />
             <p>
-              I'm <strong>{author}</strong>, I'm a (Web?) ( Full-stack?)
+              I'm <strong>{author}</strong>, I'm a (Web?) (Full-stack?)
               (Front-end?) developer at{" "}
               <a
                 target="_blank"

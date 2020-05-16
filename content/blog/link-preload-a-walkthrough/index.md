@@ -159,7 +159,7 @@ For now let's focus on the configuration request only, for brevity.
 
 > **Note**: from now on: stuff inside the `<...>` placeholder is omitted but is never an issue, so equals on both preload and canonical requests.
 
-These are the headers of the preload requests:
+These are the headers of the preload request:
 
 ```
 :authority: <...>
