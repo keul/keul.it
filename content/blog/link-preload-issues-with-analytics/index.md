@@ -11,7 +11,7 @@ exclude: Table of Contents
 
 # Preamble
 
-This is a new chapter in my search for optimal front-end performance using [resource preload](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content) using `link rel="preload"`.
+This is a new chapter in my search for optimal front-end performance using [resource preload](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content) with `link rel="preload"`.
 
 To better understand the context see my previous article "[A walkthrough on prioritizing resources load using link preload](/link-preload-a-walkthrough/)".
 
@@ -66,7 +66,7 @@ user-agent: <...>
 ...and this is the canonical request (the one that should not be there at all 😡):
 
 ```python{9}
-:authority: cds.climate.copernicus.eu
+:authority: <...>
 :method: GET
 :path: <...>/configuration.json?configuration_version=3.0
 :scheme: https
