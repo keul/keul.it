@@ -51,7 +51,22 @@ Wordpress2016.overrideThemeStyles = () => {
     },
     'a.anchor': {
       boxShadow: 'none',
-    }
+    },
+    'img[alt*=" - left"]': {
+      float: 'left',
+      marginRight: '1rem',
+    },
+    'img[alt*=" - right"]': {
+      float: 'right',
+      marginLeft: '1rem',
+    },
+    'img[alt*=" - center"]': {
+      margin: '0 auto',
+      display: 'block',
+    },
+    'main > hr': {
+      clear: 'both',
+    },
   }
 }
 
