@@ -263,12 +263,12 @@ function AnotherDocumentationTreeNode() {
 };
 ```
 
-Let's start from simple things, so in reverse order:
+Let's start from simple things, so bottom-up:
 
 - we display `<Icon>` when we are done
 - in the meantime we display `<WaitIcon>`
-- `onDone` is a function that receive results when we are done, and return a new component to display in the tooltip
-- `callable` is the slow function to make asynchronous, and we will pass `params` to it.
+- `onDone` is a function that receive results when we are done, and returns a new component to display in the tooltip
+- `callable` is the slow-as-hell function to make asynchronous, and we will pass `params` to it.
 
 Note that we can't simply do `callable={() => {ellipsBlock(description, filter)}}` due to how Worker are designed.
 
@@ -291,5 +291,42 @@ This is the `render` method (yeah, I know I know... no hooks in this project. Is
 ```
 
 Just a wrapper behind the old `Tooltip`.
-Now we need to turn this `waiting` state on and off.
+Now we need to turn this `waiting` state on and off, how to do this?
+
+```JavaScript{6}
+  async update() {
+    const { callable, params, onDone } = this.props;
+    this.setState({
+      waiting: true,
+    });
+    const worker = workerize(`export ${callable.toString()}`);
+    const result = await this.worker[callable.name](...params);
+    if (result !== null) {
+      this.setState({
+        text: onDone(result, ...params),
+      });
+    }
+    this.setState({
+      waiting: false,
+    });
+  }
+```
+
+This (async) `update` function should be called from other common lifecycle events, or you can simply replace it with (async!) `componentDidUpdate`/`componentDidMount`, this depends on your application lifecycle.
+
+Note highlighted line.
+This is a documented way to use workerize lib: by inlining a JavaScript source exporting a function.
+It can resemble you the use of `eval`, but thanks to `Function` object property we can get the source code in a more tidy way.
+
+This implementation has a lot of issues.<br>
+If we open the network tab we see a lot of (fake) network activities.
+I suspect because this approach is generating multiple workerize/Worker objects, one for every `update` call, performed by hundreds of instance, still not 100% sure why browser show this as network.
+
+But is the browser still stuck?
+No!
+Now is working smoothly.
+
+So, we "just" need to optimize.
+
+### Second iteration: just one workerize object
 

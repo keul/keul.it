@@ -3,6 +3,10 @@ import Wordpress2016 from "typography-theme-wordpress-2016"
 
 Wordpress2016.overrideThemeStyles = () => {
   return {
+    blockquote: {
+      marginLeft: 0,
+      marginRight: 0,
+    },
     ul: {
       paddingLeft: "1rem",
     },
