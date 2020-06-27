@@ -328,5 +328,96 @@ Now is working smoothly.
 
 So, we "just" need to optimize.
 
-### Second iteration: just one workerize object
+### Second iteration: just one workerize instance
+
+The error above is simple: Web Workers use a module, and we are generating tons of identical module.
+But we don't need this: one worker (And module) is enough.
+
+So let's handle this in the constructor:
+
+```JavaScript
+  constructor(props) {
+    super(props);
+    if (!registry[props.callable.name]) {
+      registry[props.callable.name] = workerize(`export ${props.callable.toString()}`);
+    }
+    this.worker = registry[props.callable.name];
+    this.state = {
+      text: '',
+      waiting: false,
+    };
+```
+
+You can imagine this `registry` object like a vanilla object literal that (can) hold multiple workerized instances, but one for every function.
+This will not work in case of name clashing, of course, but is acceptable.<br>
+The key is to have one worker for doing the same job, so we will use `this.worker` when we need it.
+
+This is going a lot better, no alien network activities, UI quick and responsive.
+
+### Third iteration: try to save the universe from max entropy
+
+This implementation is still flawed, but even if you not get the issue let me say that, while performing a search, the application was working smoothly while my CPU goes crazy hight for a while.
+
+To make this clear let's put some logging in the `update` method:
+
+```JavaScript{6,8}
+  async update() {
+    const { callable, params, onDone } = this.props;
+    this.setState({
+      waiting: true,
+    });
+    console.log(1)
+    const result = await this.worker[callable.name](...params);
+    console.log(2)
+    // ...
+```
+
+As you can guess, browser's console is then full of:
+
+```
+1
+1
+1
+1
+...
+2
+2
+2
+2
+```
+
+So, every component instance reach our slow-as-hell line and... generate a new thread?
+I did not found an exhaustive explanation of a Worker lifecycle, but this can explain CPU consumption although responsiveness is still OK.
+
+So are we executing hundred of different concurrent threads?
+I don't think so.
+One time again I did not find a guide, but it seems that Web Workers limits change browser by browser, even if it seems that 20 is the magic number for many.
+
+My thesis seems partially confirmed by the fact that `<Icon>` instances replace `<WaitICon>` at the same time.
+
+In any case this is not the way to do: I don't care to get search result at the same time: it's OK that regex and icon with tooltip are served to the user one at time: pop-in with a cascade effect if OK.
+
+### Fourth iteration: enqueue
+
+To handle this we need a queue.
+
+I will skip the implementation for brevity, but let say our `registry` is changed to something more complex:
+
+```JavaScript
+class WorkerRegistry {
+  // ...
+  register(name, code) {
+    // ...
+  }
+}
+const registry = new WorkerRegistry();
+```
+
+...and we change the way we get the worker entity in our `update`, which will be no more a real workerized instance, but a subscription to a queue:
+
+```JavaScript
+  this.worker = registry.register(
+    props.callable.name, props.callable.toString()
+  );
+```
 
