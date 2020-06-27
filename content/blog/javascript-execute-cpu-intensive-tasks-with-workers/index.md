@@ -74,7 +74,7 @@ Do you see? As far as I start typing, focus on the input field seems to disappea
 
 This contents tree is not so small anymore... now we have more that 250 elements in there (folders and documents) for more than 300 KBytes size (excluding gzip).
 
-Every time I have a node in the tree I run something like this (pseudocode alert):
+Every time I have a node in the tree I run something like this (_pseudocode alert_):
 
 ```jsx{5}
 function ADocumentationTreeNode() {
@@ -98,10 +98,12 @@ function ADocumentationTreeNode() {
 };
 ```
 
+I hope it's enough simple to follow: we have a `Tooltip` component which display a `textNode` when hovering an `Icon`. 🕺
+
 **Note**: if you are asking "_are you running this also for items inside closed folders?!_" the answer is _yes_ as we need to automatically expand the tree when an entry is found.
 
-In the code above the problematic line is the highlighted one: this `searchIntoText` function is the one that execute a regexp on the text, and return only a part of the text truncated with ellipsis.
-And is now repeated hundred of times.
+In the code above the problematic (slow) line is the highlighted one: this `searchIntoText` function is the one that execute a regexp on the text, and return only a part of the text truncated with ellipsis.
+A _single_ call to this is not an issue, but is now repeated hundred of times.
 
 # Optimizations
 
@@ -116,9 +118,9 @@ There's few well know tricks that I can't apply here, but one important one is t
 
 Out regexp pattern was using the global (`g`) flag.
 Do we need it?
-No... `searchIntoText` just ned to find the first occurrence!
+No... `searchIntoText` just need to find the first occurrence!
 
-But is this making any difference?
+But is this _really_ making any difference?
 
 Try to open you `node` console (or the browser one) and put a giant text in there:
 
@@ -169,23 +171,25 @@ Last one is the most important: if we set the min chars to 3 and the user is typ
 
 ## Did we fixed the issue?
 
-Fix above provided a better user experience, but they are not enough.
+Fix above provided a slightly better response, but not enough.
 
-The main problem is the regex complexity: our is not just a simple search for a word because we need to address ellipsis.
+The main problem is the regex complexity: our one is not just a simple search for a word because we need to address ellipsis.
 
 # How to fix this issue
 
-The **real** fix for this issue is to move the search server side. Fullstop.
+The **real** fix for this issue is to move the search server side.
+Fullstop.
 
 We can keep client side search for titles, but moving text search in an asynchronous API call would probably be our best option.
 
-A server can fast enough (even if your old PC is not) and is generally more efficient to search for text (think, for example, at Full Text Search feature on PostgreSQL or Elasticsearch).
+A server can fast enough (even if your old PC or legacy smartphone is not) and is generally more efficient to search for text.
+Think, for example, at full text search feature on PostgreSQL or Elasticsearch.
 
 # How to quickly fix this issue
 
-But designing this new API requires some time, while the issue is at high priority.
+But in our case designing this new API requires some time, while the issue is at high priority.
 
-OK so our regex execution is slow.<br>
+OK, so our regex execution is slow.<br>
 But is this our real problem?
 No...
 
@@ -205,7 +209,7 @@ So, in JavaScript you can delay stuff "for later" or to next tick, by using `set
 Until Workers has been introduced.
 
 A Worker is a background task (this time, for real) that execute in a **separate thread**.
-
+Web Workers are one of the technology behind bigger brother Service Worker.
 It has some limitations, it can't touch the DOM for example, but can communicate with the main thread using messages (so asynchronously).
 
 A Web Worker usage is not exactly straightforward as running a thead in programming language, using Vanilla JS you should run something like this:
@@ -216,49 +220,76 @@ myWorker = new Worker('worker.js');
 
 ### workerize
 
-As you can see it runs a JavaScript module, you can't easily run a function in a thread (due to limitations discussed above).
+As you can see a Web Worker works by running JavaScript _module_, you can't easily run a function in a thread (due to limitations discussed above).
 
 But there's many additional libraries that make things easier.
 
 - [Comlink](https://github.com/GoogleChromeLabs/comlink) is a Google library that make Workers usage easier
 - [workerize](https://github.com/developit/workerize) is another option: just few bytes of library
 
-I chosed workerize because it claims that you can use it with a string or with a function, but [this is false](https://github.com/developit/workerize/issues/37).<br>
+I took workerize because it claims that you can use it with a string or with a function, but [this is not that easy](https://github.com/developit/workerize/issues/37).<br>
 However the library works as expected.
+
+👇
 
 ### First iteration: move regex evaluation in a Web Worker
 
-The idea is to have something like this:
+The idea.
+To have something like this (_super pseudocode alert_):
 
 ```jsx
 function AnotherDocumentationTreeNode() {
     ...
     let descriptionNode = null;
-    if (filter && filter.length >= 3 && doc.description) {
-      const onDone = function(ellipsedDescr, _descr, usedFilter) {
-        if (!ellipsedDescr) {
+    if (filter) {
+      const onDone = function(filteredText, filter) {
+        if (!filteredText) {
           return null;
         }
-        const descrNode = <pre>{highlightText(ellipsedDescr, usedFilter)}</pre>;
-        return descrNode;
+        return <Pre>{highlightText(filteredText, filter)}</Pre>;
       };
       descriptionNode = (
         <WorkerizedTooltip
           callable={ellipsBlock}
           onDone={onDone}
-          params={[doc.description, filter, 3]}
-          id={`doc-id-${doc.path.replace(/\//g, '-')}`}
-          tooltipCls="toolbox-documentation-tip"
-          placement="right"
-          fadeDelay={0}
-          delayShow={0}
-          container="span"
-          waitIndicator={<Icon path="magnify" fillColor="#c0c0c0" pulse />}
+          params={[description, filter]}
+          waitIndicator={<WaitIcon />}
         >
-          <Icon path="help-circle" fillColor={filter ? '#CCCC00' : '#000'} />
+          <Icon />
         </WorkerizedTooltip>
       );
     }
     ...
 };
 ```
+
+Let's start from simple things, so in reverse order:
+
+- we display `<Icon>` when we are done
+- in the meantime we display `<WaitIcon>`
+- `onDone` is a function that receive results when we are done, and return a new component to display in the tooltip
+- `callable` is the slow function to make asynchronous, and we will pass `params` to it.
+
+Note that we can't simply do `callable={() => {ellipsBlock(description, filter)}}` due to how Worker are designed.
+
+Now all of the black magic is inside `WorkerizedTooltip`.<br>
+This is the `render` method (yeah, I know I know... no hooks in this project. Is a old React version):
+
+```jsx
+  render() {
+    const { children, callable, onDone, params, waitIndicator, ...rest } = this.props;
+    const { text, waiting } = this.state;
+    if (waiting) {
+      return waitIndicator;
+    }
+    return (
+      <Tooltip text={text} {...rest}>
+        {children}
+      </Tooltip>
+    );
+  }
+```
+
+Just a wrapper behind the old `Tooltip`.
+Now we need to turn this `waiting` state on and off.
+
