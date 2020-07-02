@@ -22,30 +22,33 @@ Web [Workers](https://developer.mozilla.org/en-US/docs/Web/API/Worker) to the re
 
 This story begins with a product: a Web based programming IDE.
 
-This application is quite huge and complex, but here we'll just focus on a small feature: a *live documentation search* in a tree of documents.<br>
-When we started developing this, the search was simple: just autocomplete names of documents.
+This application is quite huge and complex, but here we'll just focus on a small feature: a _live documentation search_ in a tree of documents.<br>
+This is an easy feature: you autocomplete links, and clicking the link opens the document in an overlay.
 
-As all documents are bulk loaded from an API, we implemented the search on the client: a `String.indexOf` plus use of [react-highlight-words](https://github.com/bvaughn/react-highlight-words) was enough.
+When we started developing this the search behavior was simple: just autocomplete names of documents.
+
+As all documents were bulk loaded from an API, we implemented the search on the client: a `String.indexOf` plus use of [react-highlight-words](https://github.com/bvaughn/react-highlight-words) was enough.
 
 ![A search preview](./search-example.png)
 
 # An additional search feature
 
-Later, in the documentation tab, we received a new feature request: to be able to **search inside the text of the document**.
+Later, in the documentation tab, we received a new feature request: be able to **search inside the text of the document**.
 
-Before digging into this let' recap the current status:
+Before digging into this let's recap the current status:
 
 - we receive the whole tree at load time
 - these documents changes rarely (we can cache it in the browser for a short time)
 
 Introducing a server side live search from the beginning doesn't worth the additional complexity (you know... premature optimization) and user performance would have been _worst_ in my opinion (due to network latency).
+I prefer to lazy-load the JSON while other section of the IDE are already working.
 
 But would this be still true if we add additional (big) text for every entry and we perform regex search inside them?
 Let's see:
 
-- the final JSON, with documentation text included, was just a few KBytes more (note that the **feature is loaded asynchronously**... 100 KBytes of additional JSON, cached in the browser, are just OK)
-- keeping the search on the client? The IDE mainly targets desktop environments and modern browsers
-- I did a test with CPU throttling and it was "good enough": typing was a little less reactive, but OK.
+- the final JSON, with documentation text included, was just a few KBytes more (100 or more KBytes of additional JSON, cached in the browser, are just OK)
+- keeping the search on the client? The IDE mainly targets desktop environments and modern browsers.
+  I did a test with CPU throttling and it was "good enough": typing was a little less reactive, but OK.
 
 So: let's keep the search on the client! 🎉 🎉 🎉
 
@@ -53,7 +56,7 @@ So: let's keep the search on the client! 🎉 🎉 🎉
 
 (_BTW I don't like this sentence, because most of the time "good enough" is just good enough_)
 
-I did a wrong evaluation: I tested the current status of the application and not considered the _evolution_.
+Evaluation of the change was a failure: I tested the current status of the application and not considered the _evolution_.
 I'm not talking about potential evolution (this would be again premature optimization) but evolution already programmed:
 
 - documentation **receive contribution from outside**: there's a community of contributors that add new tools (not too much) that goes directly in the documentation.
@@ -74,7 +77,7 @@ Do you see? As far as I start typing, focus on the input field seems to disappea
 
 This contents tree is not so small anymore... now we have more that 250 elements in there (folders and documents) for more than 300 KBytes size (excluding gzip).
 
-Every time I have a node in the tree I run something like this (_pseudocode alert_):
+Every time I have a node in the tree I run something like this (_React pseudocode alert_):
 
 ```jsx{5}
 function ADocumentationTreeNode() {
@@ -98,23 +101,21 @@ function ADocumentationTreeNode() {
 };
 ```
 
-I hope it's enough simple to follow: we have a `Tooltip` component which display a `textNode` when hovering an `Icon`. 🕺
+I hope it's enough simple to follow: we have a `Tooltip` component which display a `textNode` when hovering an `Icon`.
 
 **Note**: if you are asking "_are you running this also for items inside closed folders?!_" the answer is _yes_ as we need to automatically expand the tree when an entry is found.
 
 In the code above the problematic (slow) line is the highlighted one: this `searchIntoText` function is the one that execute a regexp on the text, and return only a part of the text truncated with ellipsis.
-A _single_ call to this is not an issue, but is now repeated hundred of times.
+A _single_ call to this is not an issue, but when the issue was reported it was repeated hundred of times.
 
 # Optimizations
 
-A couple of small optimizations are possible there.
-Both of them should have been there from the beginning.
+A couple of small optimizations are always possible in this case.
 
 ## Optimize regexp
 
-Writing an high-performance regexp is important and I suspect it's not a so well know topic,
-I like spending time into this thanks to a small book I read years ago.
-There's few well know tricks that I can't apply here, but one important one is the usage of [flags](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Advanced_searching_with_flags_2).
+Writing an high-performance regexp is important and I suspect it's not a so well know topic; I like spending time into this thanks to a small book I read years ago.
+There's few well know tricks that I can't apply here, but an important one is properly usage of [flags](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Advanced_searching_with_flags_2).
 
 Out regexp pattern was using the global (`g`) flag.
 Do we need it?
@@ -159,7 +160,7 @@ This time we have that user input is triggering an expensive operation, so:
   In our case: we don't need to look for text match when the user inserted less than 3 (or maybe more) chars.
 - Most important: **debounce the state change while user is typing**
 
-Last one is the most important: if we set the min chars to 3 and the user is typing the word `animate` we are repeating the operation again and again for all of the following words:
+Last one is the most important: even if we set a min chars value to 3 and the user is typing the word `animate` we are repeating the operation again and again for all of the following words:
 
 - `ani`
 - `anim`
@@ -178,11 +179,11 @@ The main problem is the regex complexity: our one is not just a simple search fo
 # How to fix this issue
 
 The **real** fix for this issue is to move the search server side.
-Fullstop.
+Full stop.
 
 We can keep client side search for titles, but moving text search in an asynchronous API call would probably be our best option.
 
-A server can fast enough (even if your old PC or legacy smartphone is not) and is generally more efficient to search for text.
+A server can be fast enough (even if your old PC or legacy smartphone are not) and is generally **more efficient to search for text**.
 Think, for example, at full text search feature on PostgreSQL or Elasticsearch.
 
 # How to quickly fix this issue
@@ -201,26 +202,27 @@ That's the point: can we make the search asynchronous?
 
 Welcome to JavaScript an (historically) single-process and single-threaded.
 
-I like JavaScript because a lot of stuff is asynchronous by default (using a syntax that is easy to be understood... I'm looking at you Python) so it shines when you need to handle a lot of concurrent I/O, but we are still inside a single event loop.
+I like JavaScript because a lot of stuff is asynchronous by default (using a syntax that can be understood by humans... I'm looking at you Python) so it shines when you need to handle a lot of concurrent I/O, but we are still inside a single event loop.
 Is this Windows 95™? 🤷‍♂️
 
-So, in JavaScript you can delay stuff "for later" or to next tick, by using `setTimeout`, `setInterval`, `requestAnimationFrame`, ... but you should never block the thread, you can't efficiently perform a long CPU intensive operation.
+So, in JavaScript you can delay stuff "for later" or to next tick, by using `setTimeout`, `setInterval`, `requestAnimationFrame`, `requestIdleCallback`, ... but you should **never block the thread**.
+You can't efficiently perform a long CPU intensive operation.
 
 Until Workers has been introduced.
 
 A Worker is a background task (this time, for real) that execute in a **separate thread**.
-Web Workers are one of the technology behind bigger brother Service Worker.
-It has some limitations, it can't touch the DOM for example, but can communicate with the main thread using messages (so asynchronously).
+Web Workers are one of the technology behind bigger brother [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API).
 
-A Web Worker usage is not exactly straightforward as running a thead in programming language, using Vanilla JS you should run something like this:
+It has some limitations, it can't touch the DOM for example, but can communicate with the main thread using messages (so asynchronously).
+For this reason using a Web Worker is not exactly straightforward as running a thead like in every other programming language: using Vanilla JS you should run something like this:
 
 ```JavaScript
 myWorker = new Worker('worker.js');
 ```
 
-### workerize
-
 As you can see a Web Worker works by running JavaScript _module_, you can't easily run a function in a thread (due to limitations discussed above).
+
+### workerize
 
 But there's many additional libraries that make things easier.
 
@@ -265,14 +267,15 @@ function AnotherDocumentationTreeNode() {
 
 Let's start from simple things, so bottom-up:
 
+- We are a `WorkerizedTooltip` component, able to display a tooltip generated after a slow operation
 - we display `<Icon>` when we are done
 - in the meantime we display `<WaitIcon>`
 - `onDone` is a function that receive results when we are done, and returns a new component to display in the tooltip
 - `callable` is the slow-as-hell function to make asynchronous, and we will pass `params` to it.
 
-Note that we can't simply do `callable={() => {ellipsBlock(description, filter)}}` due to how Worker are designed.
+Note that we can't simply do `callable={() => {ellipsBlock(description, filter)}}`, again due to how Workers are designed.
 
-Now all of the black magic is inside `WorkerizedTooltip`.<br>
+As you can see all of the black magic is inside `WorkerizedTooltip`.<br>
 This is the `render` method (yeah, I know I know... no hooks in this project. Is a old React version):
 
 ```jsx
@@ -318,20 +321,23 @@ Note highlighted line.
 This is a documented way to use workerize lib: by inlining a JavaScript source exporting a function.
 It can resemble you the use of `eval`, but thanks to `Function` object property we can get the source code in a more tidy way.
 
-This implementation has a lot of issues.<br>
+This implementation "works", browser is responsive, but has issues.<br>
 If we open the network tab we see a lot of (fake) network activities.
-I suspect because this approach is generating multiple workerize/Worker objects, one for every `update` call, performed by hundreds of instance, still not 100% sure why browser show this as network.
+
+![Worker initialization](./fake-network.png)
+
+I suspect because this approach is generating multiple workerize/Worker objects, one for every `update` call, performed by hundreds of instance, still not 100% sure why browser show this as network activity.
 
 But is the browser still stuck?
 No!
-Now is working smoothly.
+The search is a bit slow (we see the `WaitIcon` for for a small amount of time, but it's visible) but the browser is not blocked.
 
 So, we "just" need to optimize.
 
 ### Second iteration: just one workerize instance
 
 The error above is simple: Web Workers use a module, and we are generating tons of identical module.
-But we don't need this: one worker (And module) is enough.
+But we don't need this: one worker (one module) is enough.
 
 So let's handle this in the constructor:
 
@@ -348,11 +354,12 @@ So let's handle this in the constructor:
     };
 ```
 
-You can imagine this `registry` object like a vanilla object literal that (can) hold multiple workerized instances, but one for every function.
-This will not work in case of name clashing, of course, but is acceptable.<br>
+You can imagine this `registry` object like a vanilla object literal that (can) hold multiple workerized instances, one for every function.<br>
+This implementation will not work in case of name clashing, but let's not be worried of this.
+
 The key is to have one worker for doing the same job, so we will use `this.worker` when we need it.
 
-This is going a lot better, no alien network activities, UI quick and responsive.
+This is running a lot better, no alien network activities, UI quick and responsive.
 
 ### Third iteration: try to save the universe from max entropy
 
@@ -391,11 +398,11 @@ I did not found an exhaustive explanation of a Worker lifecycle, but this can ex
 
 So are we executing hundred of different concurrent threads?
 I don't think so.
-One time again I did not find a guide, but it seems that Web Workers limits change browser by browser, even if it seems that 20 is the magic number for many.
+It seems every browser implements a Web Workers limits and seems that 20 is the magic number for many.
 
-My thesis seems partially confirmed by the fact that `<Icon>` instances replace `<WaitICon>` at the same time.
+My hypothesis seems confirmed by the fact that `<Icon>` instances replace `<WaitICon>` at the same time.
 
-In any case this is not the way to do: I don't care to get search result at the same time: it's OK that regex and icon with tooltip are served to the user one at time: pop-in with a cascade effect if OK.
+In any case this is not the way to do: I don't care to get search result at the same time, it's OK that regex and icon with tooltip are served to the user one at time: pop-in with a cascade effect if OK.
 
 ### Fourth iteration: enqueue
 
@@ -421,3 +428,27 @@ const registry = new WorkerRegistry();
   );
 ```
 
+The idea is to perform one operation at time putting every operations in a FIFO.
+When an operation completes we get and execute the next element in the queue.
+
+Question is: how to implement this in JavaScript?
+
+A simple way is to use a `setTimeout`, so checking every _X_ ms if the task is completed and, if not, wait again.
+This implementation immediately fixed the CPU usage, but it's better to not use `setTimeout` when you can avoid it.
+
+Another cleaner approach is by using a message system.<br>
+This not required me to search for something because, for historical reason, we are already using [MiniSignal](https://www.npmjs.com/package/mini-signals) in this application.
+
+Using an event system we can remove the usage of timers, and dispatching events when an operation is completed, the moving to the next one in the queue.
+
+# Final thoughts on Web Workers
+
+Take a look at the [Can I Use page about Workers](https://caniuse.com/#feat=webworkers).
+
+As you can see the support is huge, it not only works on IE 11, but down to IE 10.<br>
+However using workers is not a common pattern, I'm quite sure that few front-end devs use them regularly and it always taste as "something new" to JavaScript although this is false.
+
+The reason? Probably because you don't need them most of times.<br>
+JavaScript is damn good in managing asynchronous IO and user interaction and, on the other hand, you will not use it for CPU intensive operation like advanced math (at least, not in the browser... but I hope on a server neither... c'mon...).
+
+But Workers can still find some interesting applications in my opinion, like async language parsing (some editors use it) or text transformation (which is more or less what we did here).
