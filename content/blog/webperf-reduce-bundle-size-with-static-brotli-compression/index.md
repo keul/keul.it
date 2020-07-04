@@ -93,7 +93,7 @@ I'm working with an application served by a complex nginx configuration (generat
 
 In this environment we are still supporting IE 11 ([don't ask](https://canistop.net/)) and in any case installing brotli support is not so easy (a lot of systems involved).
 
-My focus recently has been on how to make a single application page _fast_.<br>
+My activities recently has been focused on how to make a single application page _faster_.<br>
 Unluckily this application (a React based JavaScript) is quite slow at load time and in some configuration it requires huge libraries like [Plotly.js](https://plotly.com/javascript/) or [Leaflet](https://leafletjs.com/).<br>
 Analytics data says that most of incoming traffic came from mobile (not a surprise).
 
