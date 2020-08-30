@@ -9,13 +9,13 @@ description: How a common companion like Google Analytics can mess up your prelo
 exclude: Table of Contents
 ```
 
-# Preamble
+## Preamble
 
 This is a new chapter in my search for optimal front-end performance using [resource preload](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content) with `link rel="preload"`.
 
 To better understand the context see my previous article "[A walkthrough on prioritizing resources load using link preload](/link-preload-a-walkthrough/)".
 
-# A `preload` regression
+## A `preload` regression
 
 We left this Story with a super-happy version of me, proud of the performance boost obtained.
 
@@ -27,8 +27,8 @@ First of all we started getting again the Chrome warning that says "_The resourc
 
 In the previous article I said we added preloading of two resources:
 
-* a `configuration.json` file request
-* an execution process request
+- a `configuration.json` file request
+- an execution process request
 
 Both stopped working:
 
@@ -103,7 +103,7 @@ _One minutes_ are a very small timeout: a user moving from an application to ano
 
 Not good for anybody.
 
-# The problem with Google Analytics
+## The problem with Google Analytics
 
 So what's the problem introduced by Google Analytics?
 
@@ -113,21 +113,26 @@ This is performed by Google Analytics and the fact that is performed _between_ p
 
 Let me try to resume what's is going on (again: for simplicity I'm keeping focus on configuration only, but we have the same issue for the process run):
 
-* Application's page is visited by the user
-* At the very top of the page we have our `preload` link that's perform a fetch to configuration at high priority
-* Near the top of our `head` HTML we have our newly added `<script>` tag for loading Google Analytics just after another script to activate it.
-* ...Lot of other stuff is loaded...
-* When ready, our JavaScript will try to load again the configuration file
+- Application's page is visited by the user
+- At the very top of the page we have our `preload` link that's perform a fetch to configuration at high priority
+- Near the top of our `head` HTML we have our newly added `<script>` tag for loading Google Analytics just after another script to activate it.
+- ...Lot of other stuff is loaded...
+- When ready, our JavaScript will try to load again the configuration file
 
 You probably already know how GA is added to a site:
 
 ```html
 <script>
-window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
-ga('create', 'UA-XXXXX-Y', 'auto');
-ga('send', 'pageview');
+  window.ga =
+    window.ga ||
+    function() {
+      ;(ga.q = ga.q || []).push(arguments)
+    }
+  ga.l = +new Date()
+  ga("create", "UA-XXXXX-Y", "auto")
+  ga("send", "pageview")
 </script>
-<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
 ```
 
 Note that `analytics.js` is loaded with the `async` attribute, so it will not block page and other resources to be loaded; we can say it is loaded at low priority.
@@ -138,26 +143,31 @@ Moving the script in a different location of the page is neither an option: with
 
 Here is our problem in few words:
 
-* Our `preload` request is performed at very high priority, when we don't have any cookies (and if we have them, `gat_` is probably expired)
-* GA is run at low priority, but it's still faster that our application, so cookies are generated (and the GA request is also performed, but we don't care)
-* Later our canonical `fetch` is executed by JavaScript, but _now_ we have new cookies.
+- Our `preload` request is performed at very high priority, when we don't have any cookies (and if we have them, `gat_` is probably expired)
+- GA is run at low priority, but it's still faster that our application, so cookies are generated (and the GA request is also performed, but we don't care)
+- Later our canonical `fetch` is executed by JavaScript, but _now_ we have new cookies.
   Request don't match with preload.
   Request repeated.
   Me sad.
 
 So what we can do?
 
-# A possible solution
+## A possible solution
 
 There's a single line of code that trigger the issue:
 
 ```html{4}
 <script>
-window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
-ga('create', 'UA-XXXXX-Y', 'auto');
-ga('send', 'pageview');
+  window.ga =
+    window.ga ||
+    function() {
+      ;(ga.q = ga.q || []).push(arguments)
+    }
+  ga.l = +new Date()
+  ga("create", "UA-XXXXX-Y", "auto")
+  ga("send", "pageview")
 </script>
-<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
 ```
 
 Removing the `ga('send', ...)` will make the issue to disappear, but analytics stops (no request to Google service is done).
@@ -170,11 +180,16 @@ For example, let's change the activation script like follows:
 
 ```html{4-6}
 <script>
-window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
-ga('create', 'UA-XXXXX-Y', 'auto');
-function runGA() {
-    ga('send', 'pageview');
-}
+  window.ga =
+    window.ga ||
+    function() {
+      ;(ga.q = ga.q || []).push(arguments)
+    }
+  ga.l = +new Date()
+  ga("create", "UA-XXXXX-Y", "auto")
+  function runGA() {
+    ga("send", "pageview")
+  }
 </script>
 ```
 
@@ -186,7 +201,7 @@ Finally we have `preload` working again!
 
 ![Request with preload working again](./fixed-waterfall.png)
 
-## Brawbacks
+### Brawbacks
 
 This is all but perfect.
 

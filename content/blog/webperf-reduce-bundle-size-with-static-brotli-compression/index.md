@@ -9,11 +9,11 @@ description: "HTTP compression is a well-known web server configuration, but you
 exclude: Table of Contents
 ```
 
-# Resume
+## Resume
 
 We will not focus on just using brotli compression (the Web is full articles about this) but we will discuss how you can **improve compression more** (while reducing server CPU usage) by statically compressing your CSS and JavaScript.
 
-# State of compression on the Web
+## State of compression on the Web
 
 Enabling gzip compression on HTTP is a de-facto default nowadays.
 Every browser down to IE 6 (maybe even older) supports compression and if you `apt-get install whatever` web server you'll probably have gzip enabled by default.
@@ -56,7 +56,7 @@ So in this way the browser knows that he need to un-compress the response body.
 
 Note that if the `Accept-Encoding` header is missing, or it not contains the `gzip` value, the server should not send gzipped response.
 
-# Brotli
+## Brotli
 
 [Brotli](https://brotli.org/) is an alternative compression method that is slowly raising.
 
@@ -73,7 +73,7 @@ What is important to know is that rarely live compression performed by a web ser
 
 For more details take a look at ["Brotli Compression – How Much Will It Reduce Your Content?"](https://paulcalvano.com/index.php/2018/07/25/brotli-compression-how-much-will-it-reduce-your-content/).
 
-## Why brotli adoption is still low?
+### Why brotli adoption is still low?
 
 If you take a random website and you inspect response headers you can bet it's still using gzip.
 
@@ -85,7 +85,7 @@ So I guess this is why nginx or other web service are not enabling brotli by def
 If you read above you know that **supporting multiple compression methods is possible**, it's only a matter or compressing with different algorithms for different values of `Accept-Encoding`.<br>
 So it can work but make configuration a little complex.
 
-# Statically compress using brotli
+## Statically compress using brotli
 
 Just enabling brotli on your website will give you benefits, but I don't want to stop here.
 
@@ -105,7 +105,7 @@ So as we can't (for now) enabling brotli at global level, can I **just serve my 
 The answer is _yes_!
 I can pre-compress my resources offline!
 
-## Benefits of statically compressed files
+### Benefits of statically compressed files
 
 This is nothing new.
 
@@ -194,7 +194,7 @@ Why?
 - we can provide maximum compression level
 - our nginx on the server is not wasting CPU cycles on compressing to gzip
 
-## Show me numbers!
+### Show me numbers!
 
 First of all let's show times.
 
@@ -258,7 +258,7 @@ Take a look just at the first entry, that is our main application file.
 
 We went down of 50 KBytes!
 
-# Conclusion
+## Conclusion
 
 Use brotli.
 Enable it and take your time to configure stuff for having both brotli and gzip working together (but with brotli as preferred compression method).

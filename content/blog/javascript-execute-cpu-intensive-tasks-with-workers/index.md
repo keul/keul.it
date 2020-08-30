@@ -9,7 +9,7 @@ description: "The first rule of JavaScript Club: do not block the main thread."
 exclude: Table of Contents
 ```
 
-# A resume
+## A resume
 
 An application we developed started suffering a degradation of performance when using a small feature:
 main thread was busy performing regex for searching inside _many_ text sources.
@@ -18,7 +18,7 @@ Using client side regex was not a good idea from the beginning, the best fix cou
 
 Web [Workers](https://developer.mozilla.org/en-US/docs/Web/API/Worker) to the rescue!
 
-# Introduction
+## Introduction
 
 This story begins with a product: a Web based programming IDE.
 
@@ -31,7 +31,7 @@ As all documents were bulk loaded from an API, we implemented the search on the 
 
 ![A search preview](./search-example.png)
 
-# An additional search feature
+## An additional search feature
 
 Later, in the documentation tab, we received a new feature request: be able to **search inside the text of the document**.
 
@@ -52,7 +52,7 @@ Let's see:
 
 So: let's keep the search on the client! 🎉 🎉 🎉
 
-# Good enough is not good enough
+## Good enough is not good enough
 
 (_BTW I don't like this sentence, because most of the time "good enough" is just good enough_)
 
@@ -63,7 +63,7 @@ I'm not talking about potential evolution (this would be again premature optimiz
 - a team of colleagues and external experts were in charge of **reviewing the documentation**: documentation was changing, becoming cleaner, better organized.
   And _longer_.
 
-# Browser is stuck
+## Browser is stuck
 
 So one day a user asked why documentation was "soo slow".
 
@@ -73,7 +73,7 @@ It was not just slow... the whole browser is freezed waiting for search to be co
 
 Do you see? As far as I start typing, focus on the input field seems to disappear for few seconds, and during this time the page is unresponsive.
 
-# Analysing the problem
+## Analysing the problem
 
 This contents tree is not so small anymore... now we have more that 250 elements in there (folders and documents) for more than 300 KBytes size (excluding gzip).
 
@@ -108,11 +108,11 @@ I hope it's enough simple to follow: we have a `Tooltip` component which display
 In the code above the problematic (slow) line is the highlighted one: this `searchIntoText` function is the one that execute a regexp on the text, and return only a part of the text truncated with ellipsis.
 A _single_ call to this is not an issue, but when the issue was reported it was repeated hundred of times.
 
-# Optimizations
+## Optimizations
 
 A couple of small optimizations are always possible in this case.
 
-## Optimize regexp
+### Optimize regexp
 
 Writing an high-performance regexp is important and I suspect it's not a so well know topic; I like spending time into this thanks to a small book I read years ago.
 There's few well know tricks that I can't apply here, but an important one is properly usage of [flags](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Advanced_searching_with_flags_2).
@@ -150,7 +150,7 @@ console.time('not global'); for (let i=0;i<300;i++) pattern2.exec(text); console
 Time can vary a bit, but the non-global search is _a lot_ faster.
 This largely depends on the text length and regex complexity, but for a long text (4000+ words) I have an average of 800ms versus 100ms for a non-global search.
 
-## Debounce input
+### Debounce input
 
 In React you commonly have a state, representing the user input, and you pass it down to other components.
 
@@ -170,13 +170,13 @@ Last one is the most important: even if we set a min chars value to 3 and the us
 
 ...while just waiting for `animate` is enough.
 
-## Did we fixed the issue?
+### Did we fixed the issue?
 
 Fix above provided a slightly better response, but not enough.
 
 The main problem is the regex complexity: our one is not just a simple search for a word because we need to address ellipsis.
 
-# How to fix this issue
+## How to fix this issue
 
 The **real** fix for this issue is to move the search server side.
 Full stop.
@@ -186,7 +186,7 @@ We can keep client side search for titles, but moving text search in an asynchro
 A server can be fast enough (even if your old PC or legacy smartphone are not) and is generally **more efficient to search for text**.
 Think, for example, at full text search feature on PostgreSQL or Elasticsearch.
 
-# How to quickly fix this issue
+## How to quickly fix this issue
 
 But in our case designing this new API requires some time, while the issue is at high priority.
 
@@ -198,7 +198,7 @@ We can wait for a search result as far as it's asynchronous (if we add an API ca
 
 That's the point: can we make the search asynchronous?
 
-## Workers to the rescue
+### Workers to the rescue
 
 Welcome to JavaScript an (historically) single-process and single-threaded.
 
@@ -222,7 +222,7 @@ myWorker = new Worker('worker.js');
 
 As you can see a Web Worker works by running JavaScript _module_, you can't easily run a function in a thread (due to limitations discussed above).
 
-### workerize
+#### workerize
 
 But there's many additional libraries that make things easier.
 
@@ -234,7 +234,7 @@ However the library works as expected.
 
 👇
 
-### First iteration: move regex evaluation in a Web Worker
+#### First iteration: move regex evaluation in a Web Worker
 
 The idea.
 To have something like this (_super pseudocode alert_):
@@ -334,7 +334,7 @@ The search is a bit slow (we see the `WaitIcon` for for a small amount of time, 
 
 So, we "just" need to optimize.
 
-### Second iteration: just one workerize instance
+#### Second iteration: just one workerize instance
 
 The error above is simple: Web Workers use a module, and we are generating tons of identical module.
 But we don't need this: one worker (one module) is enough.
@@ -361,7 +361,7 @@ The key is to have one worker for doing the same job, so we will use `this.worke
 
 This is running a lot better, no alien network activities, UI quick and responsive.
 
-### Third iteration: try to save the universe from max entropy
+#### Third iteration: try to save the universe from max entropy
 
 This implementation is still flawed, but even if you not get the issue let me say that, while performing a search, the application was working smoothly while my CPU goes crazy hight for a while.
 
@@ -404,7 +404,7 @@ My hypothesis seems confirmed by the fact that `<Icon>` instances replace `<Wait
 
 In any case this is not the way to do: I don't care to get search result at the same time, it's OK that regex and icon with tooltip are served to the user one at time: pop-in with a cascade effect if OK.
 
-### Fourth iteration: enqueue
+#### Fourth iteration: enqueue
 
 To handle this we need a queue.
 
@@ -441,7 +441,7 @@ This not required me to search for something because, for historical reason, we 
 
 Using an event system we can remove the usage of timers, and dispatching events when an operation is completed, the moving to the next one in the queue.
 
-# Final thoughts on Web Workers
+## Final thoughts on Web Workers
 
 Take a look at the [Can I Use page about Workers](https://caniuse.com/#feat=webworkers).
 
