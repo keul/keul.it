@@ -11,7 +11,7 @@ Wordpress2016.overrideThemeStyles = () => {
       paddingLeft: "1rem",
     },
     li: {
-      marginBottom: '0.5rem',
+      marginBottom: "0.5rem",
     },
     'a > code[class*="language-"]': {
       color: "white",
@@ -53,23 +53,26 @@ Wordpress2016.overrideThemeStyles = () => {
     '.gatsby-highlight pre[class*="language-"].line-numbers': {
       paddingLeft: "2.8em",
     },
-    'a.anchor': {
-      boxShadow: 'none',
+    "a.anchor": {
+      boxShadow: "none",
     },
     'img[alt*=" - left"]': {
-      float: 'left',
-      marginRight: '1rem',
+      float: "left",
+      marginRight: "1rem",
     },
     'img[alt*=" - right"]': {
-      float: 'right',
-      marginLeft: '1rem',
+      float: "right",
+      marginLeft: "1rem",
     },
     'img[alt*=" - center"]': {
-      margin: '0 auto',
-      display: 'block',
+      margin: "0 auto",
+      display: "block",
     },
-    'main > hr': {
-      clear: 'both',
+    "main > hr": {
+      clear: "both",
+    },
+    h4: {
+      textTransform: "none",
     },
   }
 }

@@ -9,7 +9,7 @@ description: Using a "preload" link can be the Holy Grail for boosting performan
 exclude: Table of Contents
 ```
 
-# What has been achieved
+## What has been achieved
 
 Last week I worked on an front-end performance optimization task for a project.
 The front-end of this application (my domain) is a React application but this post has nothing to do with React.<br>
@@ -41,7 +41,7 @@ I'm writing this post because this has not been exactly "easy" and I not found a
 
 Now, please sorry, but to fully understand you need some small context on the application.
 
-# Few information about the service
+## Few information about the service
 
 Let me introduce some general information on the application itself.
 
@@ -87,9 +87,9 @@ One final note: you probably already noted that the API call is performed with a
 The application can (and most of the times will) use a more common HTTP POST but when applicable (not for every kind of remote process) we use GET.<br>
 GET make the cache process easier in the reverse proxy; caching a POST is doable (at least in NGINX) but, in my limited experience, not so easy to be controlled/inspected.
 
-# The journey in the performance land
+## The journey in the performance land
 
-## What can we do better?
+### What can we do better?
 
 Let recap our weak points.
 We have three main entities:
@@ -109,7 +109,7 @@ We can make those three calls _concurrent_.
 
 Now let's detail every attempt to reach this by using the powerful preload pattern.
 
-### What a preload pattern should do?
+#### What a preload pattern should do?
 
 Briefly speaking: the browser try to fetch the resource at higher priority (more accurate: priority depends on the `as` attribute) so when your application try to fetch the resource the browser would say "_Hey! I already have this stuff!_".
 
@@ -118,7 +118,7 @@ Also notable: browser cache is still applied: if the preloaded resource is in th
 > **Note**: `link` with `rel="preload"` is [currently only supported by Chrome and Safari](https://caniuse.com/#feat=link-rel-preload) but, as you can guess, this covers 80% of the browsers out there.<br>
 > This is enough for supporting it has **it's fully backward compatible**.
 
-## Enabling preload
+### Enabling preload
 
 I was already aware of some of the issues I encountered, but I hoped that all could work by simply doing few changes.
 _Spoiler alert_: most of tutorial you can find on the Web just say "_add a preload and live happy_".<br>
@@ -217,7 +217,7 @@ A similar result if obtained for the failed API call (let me only show the resum
 | `sec-fetch-mode: no-cors` | `sec-fetch-mode: cors`           |
 | `accept: */*`             | `accept: application/json`       |
 
-### Issue: `Accept` header
+#### Issue: `Accept` header
 
 Let start from this last new entry: the [`Accept` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept).
 
@@ -258,7 +258,7 @@ This is by design:
 
 This will be important later.
 
-### Issue: `Content-Type` header
+#### Issue: `Content-Type` header
 
 There's a way to specify a content-type in a `link` request?
 
@@ -287,7 +287,7 @@ fetch(URL, method, {
 
 So we are not sending any special headers now (but _this is wrong_... continue reading).
 
-### Issue: `sec-fetch-mode` header
+#### Issue: `sec-fetch-mode` header
 
 Finally something we can't fix from JavaScript.
 
@@ -297,7 +297,7 @@ The browser is _automatically_ setting it to `cors` because of the `credentials`
 
 How can we fix this?
 
-## `preload` with `crossorigin`
+### `preload` with `crossorigin`
 
 Cross-origin calls are everywhere and luckily the preload specs supports them: you can make a preload request cross-origin by providing the [`crossorigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content#Cross-origin_fetches).
 
@@ -337,14 +337,14 @@ Generally speaking: we need to make both crossorigin settings (using `crossorigi
 
 Also, a new `Origin` header has been added automatically, but this header is equal on both requests so didn't introduced new issues.
 
-### The `Origin` header
+#### The `Origin` header
 
 Even if the [`Origin` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin) don't start with `sec-` **it's still a forbidden header** name.
 This is obvious, a lot of security is based on this header and we can't make it editable from JavaScript.
 
 Lesson learned: every time we have a cross-origin request, the browser [automatically set the `Origin` head](https://javascript.info/fetch-crossorigin#cors-for-simple-requests).
 
-## Moving away from cross-origin requests
+### Moving away from cross-origin requests
 
 I could have stopped here, but I was not fully happy (that's the sad story of my life).
 
@@ -482,11 +482,11 @@ fetch(URL, method, {
 
 Now applications are working properly with GET and POST requests and, when using GET, preload is up and running.
 
-# Push performance, more and more
+## Push performance, more and more
 
 Let's conclude this post with some final notes about possible future improvements and other patterns.
 
-## Embedding `configuration.json` in the HTML
+### Embedding `configuration.json` in the HTML
 
 Somewhere at the top I said that our Python server knows the content of the configuration file.<br>
 So why not embedding it in the HTML instead of:
@@ -502,7 +502,7 @@ Now, HTTP2 is not a silver bullet, but the cost of downloading an additional res
 OK, "low" is not "none", but having a separate resource brings another big advantage: **it can be cached**, in this case, forever.<br>
 Also this strong caching is not only for what we call "public apps", but for every kind of application, so also an authenticated user gains some benefit.
 
-## HTTP2 push
+### HTTP2 push
 
 Another approach is HTTP2 push, which is powerful and can be directly used from NGINX by providing a [`LINK` header from the upstream server](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push/#automatic-push).
 

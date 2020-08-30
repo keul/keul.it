@@ -7,12 +7,12 @@ description: A story about how I moved away from a legacy (and expensive) mess o
 This is not a story about how cool is the [Netlify service](https://www.netlify.com/) or how much [GatsbyJS](https://www.gatsbyjs.org/) is awesome and blablabla...
 There's tons of stuff like this available on the Web.
 
-# Straight to the point
+### Straight to the point
 
-* I'm a JavaScript developer, mostly working with React recently
-* I have some general knowledge of GatsbyJS (played with an old version)
-* I have some knowledge of GraphQL, although I'm not using it on daily basis
-* On Twitter, I'm following lot of people in love with Netlify
+- I'm a JavaScript developer, mostly working with React recently
+- I have some general knowledge of GatsbyJS (played with an old version)
+- I have some knowledge of GraphQL, although I'm not using it on daily basis
+- On Twitter, I'm following lot of people in love with Netlify
 
 So, apart JavaScript/React (technology behind Gatsby) I'm a total rookie in this infrastructure.
 I just read few articles like [this](https://www.gatsbyjs.org/docs/hosting-on-netlify/) and [this](https://www.gatsbyjs.org/starters/gatsbyjs/gatsby-starter-blog/).
@@ -34,7 +34,7 @@ That's all you need to know. With this few information I was able to **move away
 
 But now, let's start from the beginning.
 
-# My blog on blogspot.com
+### My blog on blogspot.com
 
 I used to have an blog.
 I started writing it on 2011 and I actively put material on it until end 2013 (a couple of articles also on 2014).
@@ -42,8 +42,8 @@ I started writing it on 2011 and I actively put material on it until end 2013 (a
 What's happened?
 It's a very common story:
 
-* shortage of free time (my first daughter born on end 2013... is this a coincidence? No... is not)
-* at the same time I was loosing interest on the main Python technology I was mostly blogging about.
+- shortage of free time (my first daughter born on end 2013... is this a coincidence? No... is not)
+- at the same time I was loosing interest on the main Python technology I was mostly blogging about.
 
 So I simply stopped writing articles at all.
 
@@ -52,9 +52,9 @@ But there's a problem: my old blog was published under a premium domain as "blog
 
 So, can be possible to:
 
-* keep this domain (well... not exactly... see below)
-* change the blog engine
-* do not loose old articles
+- keep this domain (well... not exactly... see below)
+- change the blog engine
+- do not loose old articles
 
 Blogger was probably a good choice in 2011 but not that much today.
 The blog layout has been customized in ways I really don't remember, I added spaghetti-code based on jQuery for adding simple features like lightbox and color highlight.
@@ -82,7 +82,7 @@ Still, nobody gives you a cheap nginx/apache to keep up old posts URL (or proper
 
 Wait... but I already have an Apache! And I'm paying for it!
 
-# Original Sin
+### Original Sin
 
 There's another, older, story that started in year 2005.
 Berlusconi was heading Italian Government, some good movies were released ("V for Vendetta", "Batman Begins", ...).
@@ -90,12 +90,12 @@ Berlusconi was heading Italian Government, some good movies were released ("V fo
 At that time a Young and Charming Developer had a terrible idea: **buy a personal domain**.
 "Why?" you asked? Because he believed it was "cool" and "professional" (keep in mind I graduated in mid 2003).
 
-In the price of the domain I got also domain email address (*worst* idea ever) and some web space.
+In the price of the domain I got also domain email address (_worst_ idea ever) and some web space.
 
 Let's recap how much this was expensive:
 
-* Domain 35,00€/year
-* Linux "developer" hosting 85,00€/year
+- Domain 35,00€/year
+- Linux "developer" hosting 85,00€/year
 
 This was _without_ VAT (that was 20% at the time... 20%... not 21 or 22, 25 or 26,5).
 
@@ -125,7 +125,7 @@ But every year, in the renewal period, I ended saying "Ok, maybe next year".
 
 Laziness and procrastination.
 
-# SSL
+### SSL
 
 During one of my evaluation of new blogging service I also looked back to blogger itself, going into "settings" to see new features.
 
@@ -140,7 +140,7 @@ This is the reply from the service (translated from italian):
 > Linux development hosting solution currently active do not include free SSL.
 >
 > If you like to proceed you should buy an SSL cert, you can find additional information here:
->  
+>
 > http://www.register.it/ssl-certificates/
 
 So... I need to may 70€ (+ VAT) at year for having SSL? Really?
@@ -148,7 +148,7 @@ So... I need to may 70€ (+ VAT) at year for having SSL? Really?
 This made me really angry.
 I need to stop giving money to those people.
 
-# The Personal Email Problem
+### The Personal Email Problem
 
 What in the beginning I considered _really cool_ was having the personal email address using _my_ domain!
 Everybody on The Internet™ already knew me as "_keul_" so why not having something that ended with "@keul.it"?
@@ -161,7 +161,7 @@ Great idea!
 
 So... let say that the domain (and mail service included) is a necessary evil for now.
 
-# I want it all
+### I want it all
 
 Today keul.it hosts an empty, embarrassing website I didn't updated for ages, and a DNS configuration for publishing the blogger's blog under "blog.keul.it" (well, until now).
 
@@ -171,17 +171,17 @@ Very professional for a Web developer, isn't it?
 
 Let's recap stuff in my _I want_ list:
 
-* I want SSL (let say I hate to not have it)
-* I want to keep my old articles, keeping back-links active
-* I want to stop burning money and dismiss at least the hosting service
+- I want SSL (let say I hate to not have it)
+- I want to keep my old articles, keeping back-links active
+- I want to stop burning money and dismiss at least the hosting service
 
 Now my _wish_ list:
 
-* I like the idea to keep control on my blogging architecture.
+- I like the idea to keep control on my blogging architecture.
   I fear any service, I want to change "easily".
-* I like the idea to continue using my old blog.keul.it domain (although I don't like to pay that much, but world is not a perfect place)
+- I like the idea to continue using my old blog.keul.it domain (although I don't like to pay that much, but world is not a perfect place)
 
-# Here we are
+### Here we are
 
 If you are reading this, my dream comes true.
 I'm hosting this new blog using my domain and some very basic Netlify features, simply `npm install` ing Gatsby with the blog add-on.
@@ -207,4 +207,3 @@ If you don't understand what I'm talking about take a look at this talk I attend
 What I have is enough, and is an order of magnitude better then before: my contents are inside a git repository, I can easily move, I can easily change, I will not waste soo much money again.
 
 See you.
-
