@@ -13,6 +13,9 @@ Wordpress2016.overrideThemeStyles = () => {
     li: {
       marginBottom: "0.5rem",
     },
+    a: {
+      color: '#333',
+    },
     'a > code[class*="language-"]': {
       color: "white",
     },
