@@ -30,33 +30,42 @@ function Bio() {
               style={{
                 marginRight: rhythm(1 / 2),
                 marginBottom: 0,
-                minWidth: 50,
+                minWidth: 150,
                 borderRadius: `100%`,
               }}
               imgStyle={{
                 borderRadius: `50%`,
               }}
             />
-            <p>
-              I'm <strong>{author}</strong>, I'm a (Web?) (Full-stack?)
-              (Front-end?) developer at{" "}
-              <a
-                target="_blank"
-                rel="noopener noreferrer"
-                href="http://www.bopen.it/"
-              >
-                B-Open
-              </a>
-              .
-              <br />
-              <br />
-              <a
-                target="_blank"
-                rel="noopener noreferrer"
-                href={`https://twitter.com/${social.twitter}`}
-              >
-                Follow me on Twitter
-              </a>
+            <p
+              style={{
+                marginBottom: 0,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-evenly",
+              }}
+            >
+              <span>
+                I'm <strong>{author}</strong>, I'm a (Web?) (Full-stack?)
+                (Front-end?) developer at{" "}
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href="http://www.bopen.it/"
+                >
+                  B-Open
+                </a>
+                .
+              </span>
+              <span>
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={`https://twitter.com/${social.twitter}`}
+                >
+                  Follow me on Twitter
+                </a>
+              </span>
             </p>
           </div>
         )
@@ -69,7 +78,7 @@ const bioQuery = graphql`
   query BioQuery {
     avatar: file(absolutePath: { regex: "/profile-pic.jpg/" }) {
       childImageSharp {
-        fixed(width: 50, height: 50) {
+        fixed(width: 150, height: 150) {
           ...GatsbyImageSharpFixed
         }
       }
