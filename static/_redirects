@@ -18,3 +18,6 @@
 # Redirect domain aliases to primary domain
 https://www.keul.it/* https://blog.keul.it/:splat 301!
 https://keul.it/* https://blog.keul.it/:splat 301!
+
+# Mappe catastali
+/mappe-catastali            https://xs85u.csb.app 302!
