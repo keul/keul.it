@@ -1,7 +1,7 @@
 ---
 title: CORS issue due to aggressive Chrome cache
 date: "2021-06-19T11:15:00+0200"
-description: Quick analysis of a CORS issue that only hit Chrome.
+description: Quick analysis of a CORS issue that only hits Chrome.
 ---
 
 ```toc
