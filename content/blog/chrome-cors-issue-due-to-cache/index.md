@@ -26,7 +26,7 @@ The [general idea](https://github.com/tsayen/dom-to-image#how-it-works) of the l
 
 After the first iteration we found a small bug due to CORS limitation in one of our deployment.
 
-Although the data (in our case: images from a WMS service) displayed inside the output widget always origin from a main domain like _official.domain.eu_, the application is also hosted on other domains like _external.domain.net_.
+Although the data (in our case: images from a [WMS](https://en.wikipedia.org/wiki/Web_Map_Service) service) displayed inside the output widget always origin from a main domain like _official.domain.eu_, the application is also hosted on other domains like _external.domain.net_.
 
 Everything was working from official.domain.eu but as soon as snapshot feature landed on external.domain.net we received a bug report: the snapshot was not working there.
 
