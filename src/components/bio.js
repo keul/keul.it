@@ -37,7 +37,7 @@ function Bio() {
                 borderRadius: `50%`,
               }}
             />
-            <p
+            <div
               style={{
                 marginBottom: 0,
                 display: "flex",
@@ -45,7 +45,7 @@ function Bio() {
                 justifyContent: "space-evenly",
               }}
             >
-              <span>
+              <div>
                 I'm <strong>{author}</strong>, I'm a (Web?) (Full-stack?)
                 (Front-end?) developer at{" "}
                 <a
@@ -56,17 +56,50 @@ function Bio() {
                   B-Open
                 </a>
                 .
-              </span>
-              <span>
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href={`https://twitter.com/${social.twitter}`}
-                >
-                  Follow me on Twitter
-                </a>
-              </span>
-            </p>
+              </div>
+              <div className="bio-section">
+                <span>
+                  <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={`https://twitter.com/${social.twitter}`}
+                  >
+                    <img className="social-icon" alt="" src="/twitter.svg" />{" "}
+                    <span className="social-link-text">
+                      Follow me on Twitter
+                    </span>
+                  </a>
+                </span>
+                <span>
+                  <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={`https://www.linkedin.com/in/${social.linkedin}`}
+                  >
+                    <img className="social-icon" alt="" src="/linkedin.svg" />{" "}
+                    <span className="social-link-text">
+                      Follow me on Linkedin
+                    </span>
+                  </a>
+                </span>
+                <span>
+                  <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="https://myspace.com/keul"
+                    onClick={ev => {
+                      ev.preventDefault()
+                      alert("Are you serious? Are you living in 2003?")
+                    }}
+                  >
+                    <img className="social-icon" alt="" src="/myspace.svg" />{" "}
+                    <span className="social-link-text">
+                      Follow me on MySpace
+                    </span>
+                  </a>
+                </span>
+              </div>
+            </div>
           </div>
         )
       }}
@@ -88,6 +121,7 @@ const bioQuery = graphql`
         author
         social {
           twitter
+          linkedin
         }
       }
     }

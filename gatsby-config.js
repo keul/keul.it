@@ -6,6 +6,7 @@ module.exports = {
     siteUrl: `https://blog.keul.it/`,
     social: {
       twitter: `keul`,
+      linkedin: `lucafbb`,
     },
   },
   plugins: [

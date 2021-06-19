@@ -14,7 +14,7 @@ Wordpress2016.overrideThemeStyles = () => {
       marginBottom: "0.5rem",
     },
     a: {
-      color: '#333',
+      color: "#333",
     },
     'a > code[class*="language-"]': {
       color: "white",
@@ -76,6 +76,22 @@ Wordpress2016.overrideThemeStyles = () => {
     },
     h4: {
       textTransform: "none",
+    },
+    ".bio-section": {
+      display: "flex",
+      flexDirection: "column",
+    },
+    ".social-icon": {
+      marginBottom: 0,
+    },
+    "@media (max-width: 375px)": {
+      ".social-link-text": {
+        display: "none",
+      },
+      ".bio-section": {
+        flexDirection: "row",
+        gap: "0.3em",
+      },
     },
   }
 }
